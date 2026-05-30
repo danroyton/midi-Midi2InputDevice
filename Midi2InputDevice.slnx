@@ -1,10 +1,13 @@
 <Solution>
+  <Folder Name="/Projektmappenelemente/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="MidiController.Domain/MidiController.Domain.csproj" Id="c86d95a5-b4f9-4dc2-9702-100fc6cf45db" />
   <Project Path="MidiController.Engine.Tests/MidiController.Engine.Tests.csproj" Id="35dc29f6-8cfe-4133-aa5c-1576c3c1f3f8" />
   <Project Path="MidiController.Engine/MidiController.Engine.csproj" Id="0a49fdc8-dc2f-493e-9d5a-dcefa817c2d0" />
   <Project Path="MidiController.Host/MidiController.Host.csproj" Id="2facda10-4755-4a06-b05d-5f788e2ba787" />
   <Project Path="MidiController.Infrastructure.Tests/MidiController.Infrastructure.Tests.csproj" Id="c9887fa2-9633-465d-8e62-00b2bd19dc9f" />
-  <Project Path="Midicontroller.Infrastructure/Midicontroller.Infrastructure.csproj" Id="73c228af-adb9-4d95-b093-5c8c28cf0825" DisplayName="MidiController.Infrastructure" />
+  <Project Path="Midicontroller.Infrastructure/Midicontroller.Infrastructure.csproj" Id="73c228af-adb9-4d95-b093-5c8c28cf0825" />
   <Project Path="MidiController/MidiController.Docs.csproj" />
   <Project Path="MidiController.Frontend/MidiController.Frontend.csproj" Id="aadcd8fd-a360-4401-b329-8a24f2c605c5" />
 </Solution>
