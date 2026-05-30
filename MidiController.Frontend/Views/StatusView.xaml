@@ -1,0 +1,52 @@
+<UserControl x:Class="MidiControllerFrontend.Views.StatusView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="700">
+
+    <DockPanel Margin="12">
+
+        <!-- Verbindungszeile -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="SignalR: " VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding ConnectionState}" FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,12,0"/>
+            <Button Content="Verbinden" Command="{Binding ConnectCommand}" Padding="8,2"/>
+        </StackPanel>
+
+        <!-- Gate-Steuerung -->
+        <GroupBox DockPanel.Dock="Top" Header="Verarbeitungs-Gate (A / ActiveListen)" Margin="0,0,0,10" Padding="8">
+            <StackPanel>
+                <TextBlock Text="{Binding GateLabel}" FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="Aktivieren (A=0)"  Command="{Binding SetActiveCommand}"
+                            IsEnabled="{Binding CanActivate}" Padding="8,4" Margin="0,0,6,0"
+                            Background="#4CAF50" Foreground="White"/>
+                    <Button Content="Pause (A=1)"       Command="{Binding SetPausedCommand}"
+                            IsEnabled="{Binding CanPause}"   Padding="8,4" Margin="0,0,6,0"
+                            Background="#FFC107" Foreground="Black"/>
+                    <Button Content="Sperren (A=2)"     Command="{Binding SetBlockedCommand}"
+                            IsEnabled="{Binding CanBlock}"   Padding="8,4"
+                            Background="#F44336" Foreground="White"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Variablen-Tabelle -->
+        <GroupBox Header="Status-Variablen (A–Z)" Padding="4">
+            <DataGrid ItemsSource="{Binding Variables}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      AlternatingRowBackground="#F5F5F5"
+                      GridLinesVisibility="Horizontal">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Var"   Binding="{Binding Variable}" Width="50"/>
+                    <DataGridTextColumn Header="Alias" Binding="{Binding Alias}"    Width="180"/>
+                    <DataGridTextColumn Header="Wert"  Binding="{Binding Value}"    Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </GroupBox>
+
+    </DockPanel>
+</UserControl>

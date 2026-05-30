@@ -1,0 +1,33 @@
+<UserControl x:Class="MidiControllerFrontend.Views.MappingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="700">
+
+    <DockPanel Margin="12">
+
+        <!-- Titel -->
+        <TextBlock DockPanel.Dock="Top"
+                   Text="Mappings"
+                   FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
+
+        <!-- Gerätefilter -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Gerät:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <ComboBox ItemsSource="{Binding ActiveDevices}"
+                      SelectedItem="{Binding SelectedDevice}"
+                      DisplayMemberPath="DeviceId"
+                      MinWidth="220"
+                      VerticalAlignment="Center"/>
+            <Button Content="&#x21BB;"
+                    Command="{Binding LoadActiveDevicesCommand}"
+                    ToolTip="Geräteliste aktualisieren"
+                    Margin="6,0,0,0" Padding="6,2"
+                    VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <TextBlock Text="{Binding StatusMessage}"
+                   Foreground="Gray" FontStyle="Italic" FontSize="13"/>
+    </DockPanel>
+</UserControl>

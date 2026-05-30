@@ -1,0 +1,25 @@
+<UserControl x:Class="MidiControllerFrontend.Views.TemplatesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="700">
+
+    <DockPanel Margin="12">
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Templates" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,16,0"/>
+            <Button Content="Aktualisieren" Command="{Binding RefreshCommand}" Padding="8,4" Margin="0,0,6,0"/>
+            <Button Content="Löschen" Command="{Binding DeleteCommand}" Padding="8,4"
+                    Background="#F44336" Foreground="White"/>
+        </StackPanel>
+
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding StatusMessage}"
+                   Foreground="Gray" Margin="0,4,0,0"/>
+
+        <ListBox ItemsSource="{Binding TemplateNames}"
+                 SelectedItem="{Binding SelectedTemplate}"
+                 Margin="0,4,0,0"/>
+
+    </DockPanel>
+</UserControl>

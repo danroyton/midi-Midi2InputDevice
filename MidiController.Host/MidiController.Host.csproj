@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-MidiController.Host-27dceacf-f8ba-4561-8b86-c1519ccd4545</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MidiController.Domain\MidiController.Domain.csproj" />
+    <ProjectReference Include="..\MidiController.Engine\MidiController.Engine.csproj" />
+    <ProjectReference Include="..\Midicontroller.Infrastructure\MidiController.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
