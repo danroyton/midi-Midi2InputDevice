@@ -31,7 +31,8 @@ public class TriggerExecutorTests
         var condEval  = new ConditionEvaluator(resolver, templates);
         var actExec   = new ActionExecutor(resolver, injector, store, templates);
         var elseExec  = new ElseExecutor(condEval, actExec, resolver, store);
-        var executor  = new TriggerExecutor(gate, condEval, actExec, elseExec, resolver, store);
+        var midiOut   = Substitute.For<IMidiOutputService>();
+        var executor  = new TriggerExecutor(gate, condEval, actExec, elseExec, resolver, store, midiOut);
 
         return (executor, store, injector);
     }

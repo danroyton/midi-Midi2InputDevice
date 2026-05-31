@@ -33,7 +33,12 @@ public sealed record TriggerDto(
     ActionBlockDto[]      Actions,
     StateAssignmentDto[]  GlobalPostAssignments,
     TriggerConfigDto?     ElseConfig
-);
+)
+{
+    public string Name { get; init; } = string.Empty;
+    public MidiSendCommandDto[] GlobalPreMidiSend  { get; init; } = [];
+    public MidiSendCommandDto[] GlobalPostMidiSend { get; init; } = [];
+};
 
 public sealed record TriggerConfigDto(
     ConditionBlockDto[]  ConditionBlocks,
@@ -66,6 +71,14 @@ public sealed record StateAssignmentDto(
     char   Variable,
     string Source,
     int    FixedValue
+);
+
+public sealed record MidiSendCommandDto(
+    string DeviceId,
+    string EventType,
+    int    Channel,
+    int    Data1,
+    int    Data2
 );
 
 

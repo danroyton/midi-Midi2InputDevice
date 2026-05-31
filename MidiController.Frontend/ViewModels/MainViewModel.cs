@@ -80,6 +80,17 @@ public sealed partial class MainViewModel : ObservableObject
     }
     private bool _isConnected;
 
+    /// <summary>Kurz <c>true</c> wenn ein MIDI-Event eingetroffen ist (für Tray-Blink).</summary>
+    public bool MidiActivity
+    {
+        get => _midiActivity;
+        internal set => SetProperty(ref _midiActivity, value);
+    }
+    private bool _midiActivity;
+
+    /// <summary>Wird vom MidiLogViewModel bei jedem eingehenden MIDI-Event aufgerufen.</summary>
+    public void NotifyMidiActivity() => MidiActivity = true;
+
     // ── Ctor ─────────────────────────────────────────────────────────────────
 
     public MainViewModel(ApiClient api)
@@ -130,6 +141,15 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     private bool HasProfileSelection => SelectedProfile is not null;
+
+    [RelayCommand]
+    private async Task SetActiveAsync()  => await _api.SetVariableAsync('A', 0);
+
+    [RelayCommand]
+    private async Task SetPausedAsync()  => await _api.SetVariableAsync('A', 1);
+
+    [RelayCommand]
+    private async Task SetBlockedAsync() => await _api.SetVariableAsync('A', 2);
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 

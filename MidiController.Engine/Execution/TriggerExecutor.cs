@@ -1,3 +1,4 @@
+using MidiController.Domain.Interfaces;
 using MidiController.Domain.Models;
 using MidiController.Engine.Evaluation;
 using MidiController.Engine.Pipeline;
@@ -7,7 +8,8 @@ namespace MidiController.Engine.Execution;
 
 /// <summary>
 /// Führt einen einzelnen <see cref="Trigger"/> vollständig aus:
-/// GlobalPre → Gate → Prüfblöcke → Aktionen → GlobalPost (bzw. ELSE-Zweig).
+/// GlobalPre (Variablen + MIDI-Send) → Gate → Prüfblöcke → Aktionen
+/// → GlobalPost (Variablen + MIDI-Send) bzw. ELSE-Zweig.
 /// </summary>
 public sealed class TriggerExecutor
 {
@@ -17,6 +19,7 @@ public sealed class TriggerExecutor
     private readonly ElseExecutor       _elseExecutor;
     private readonly ValueResolver      _resolver;
     private readonly VariableStore      _variables;
+    private readonly IMidiOutputService _midiOut;
 
     public TriggerExecutor(
         GateEvaluator      gateEvaluator,
@@ -24,7 +27,8 @@ public sealed class TriggerExecutor
         ActionExecutor     actionExecutor,
         ElseExecutor       elseExecutor,
         ValueResolver      resolver,
-        VariableStore      variables)
+        VariableStore      variables,
+        IMidiOutputService midiOut)
     {
         _gateEvaluator      = gateEvaluator;
         _conditionEvaluator = conditionEvaluator;
@@ -32,6 +36,7 @@ public sealed class TriggerExecutor
         _elseExecutor       = elseExecutor;
         _resolver           = resolver;
         _variables          = variables;
+        _midiOut            = midiOut;
     }
 
     /// <summary>
@@ -48,6 +53,7 @@ public sealed class TriggerExecutor
             return;
 
         ApplyGlobalPreAssignments(trigger.GlobalPreAssignments, ctx);
+        SendMidiCommands(trigger.GlobalPreMidiSend);
 
         if (gate == GateResult.Paused)
         {
@@ -68,6 +74,7 @@ public sealed class TriggerExecutor
 
         await ExecuteActionsSequentiallyAsync(trigger.Actions, ctx, ct);
         ApplyGlobalPostAssignments(trigger.GlobalPostAssignments, ctx);
+        SendMidiCommands(trigger.GlobalPostMidiSend);
     }
 
     // ── Hilfsmethoden ────────────────────────────────────────────────────────
@@ -116,6 +123,13 @@ public sealed class TriggerExecutor
                 return false;
         }
         return true;
+    }
+
+    private void SendMidiCommands(MidiSendCommand[]? commands)
+    {
+        if (commands is null) return;
+        foreach (var cmd in commands)
+            _midiOut.Send(cmd);
     }
 
     private async Task ExecuteActionsSequentiallyAsync(

@@ -48,6 +48,9 @@ internal static class InfrastructureServiceExtensions
         services.AddSingleton<IMidiDeviceManager>(sp => sp.GetRequiredService<MidiInputService>());
         services.AddHostedService(sp => sp.GetRequiredService<MidiInputService>());
 
+        // ── MIDI-Ausgabe ─────────────────────────────────────────────────────
+        services.AddSingleton<IMidiOutputService, MidiOutputService>();
+
         return services;
     }
 }

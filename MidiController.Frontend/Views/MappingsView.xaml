@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:MidiControllerFrontend.Views"
              mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="900">
 
     <Grid>
@@ -51,18 +52,18 @@
                       BorderThickness="1" BorderBrush="#CCCCCC">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="Gerät"     Width="160"
+                        <GridViewColumn Header="Name"      Width="160"
+                                        DisplayMemberBinding="{Binding Name}"/>
+                        <GridViewColumn Header="Tasten"    Width="160"
+                                        DisplayMemberBinding="{Binding KeysSummary}"/>
+                        <GridViewColumn Header="Gerät"     Width="140"
                                         DisplayMemberBinding="{Binding DeviceId}"/>
-                        <GridViewColumn Header="Typ"       Width="130"
+                        <GridViewColumn Header="Typ"       Width="110"
                                         DisplayMemberBinding="{Binding EventType}"/>
                         <GridViewColumn Header="Ch"        Width="40"
                                         DisplayMemberBinding="{Binding Channel}"/>
-                        <GridViewColumn Header="Data1"     Width="55"
+                        <GridViewColumn Header="Data1"     Width="50"
                                         DisplayMemberBinding="{Binding Data1Filter}"/>
-                        <GridViewColumn Header="Match"     Width="120"
-                                        DisplayMemberBinding="{Binding MatchMode}"/>
-                        <GridViewColumn Header="Wert"      Width="50"
-                                        DisplayMemberBinding="{Binding MatchValue}"/>
                         <GridViewColumn Header="" Width="90">
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
@@ -100,6 +101,93 @@
 
                     <TextBlock Text="Trigger bearbeiten"
                                FontSize="14" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                    <!-- Anzeigename -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Name:" VerticalAlignment="Center" Width="80"/>
+                        <TextBox Text="{Binding Editor.Name, UpdateSourceTrigger=PropertyChanged}"
+                                 MinWidth="240" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- ── Pre-Zuweisungen ──────────────────────────────── -->
+                    <GroupBox Header="Pre: Variablen &amp; MIDI-Send (vor Prüfung)" Margin="0,0,0,10" Padding="8">
+                        <StackPanel>
+                            <!-- Variablen-Zuweisungen -->
+                            <TextBlock Text="Variablen setzen:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ListBox ItemsSource="{Binding Editor.PreAssignments}"
+                                     SelectedItem="{Binding Editor.SelectedPreAssignment}"
+                                     MaxHeight="80" Margin="0,0,0,4">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Summary}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Button Content="+ Variable" Padding="6,2" Margin="0,0,6,0"
+                                        Command="{Binding Editor.AddPreAssignmentCommand}"/>
+                                <Button Content="🗑"  Padding="6,2"
+                                        Command="{Binding Editor.RemovePreAssignmentCommand}"
+                                        CommandParameter="{Binding Editor.SelectedPreAssignment}"
+                                        IsEnabled="{Binding Editor.SelectedPreAssignment, Converter={StaticResource NotNull}}"/>
+                            </StackPanel>
+                            <!-- Inline-Editor der gewählten Pre-Zuweisung -->
+                            <Border Visibility="{Binding Editor.SelectedPreAssignment, Converter={StaticResource NotNullToVisibility}}"
+                                    BorderThickness="1" BorderBrush="#CCCCCC" Background="#FAFAFA" Padding="8" Margin="0,0,0,8">
+                                <Grid DataContext="{Binding Editor.SelectedPreAssignment}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Variable:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                    <ComboBox  Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
+                                               ItemsSource="{x:Static local:ValueSourceNamesProxy.Variables}"
+                                               SelectedItem="{Binding Variable}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Quelle:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                    <ComboBox  Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"
+                                               ItemsSource="{x:Static local:ValueSourceNamesProxy.WritableSources}"
+                                               SelectedItem="{Binding Source}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Wert:"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding FixedVisible, Converter={StaticResource BoolToVisibility}}"/>
+                                    <TextBox   Grid.Row="2" Grid.Column="1"
+                                               Text="{Binding FixedValue, UpdateSourceTrigger=PropertyChanged}"
+                                               Visibility="{Binding FixedVisible, Converter={StaticResource BoolToVisibility}}"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- MIDI-Send -->
+                            <TextBlock Text="MIDI senden:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ListBox ItemsSource="{Binding Editor.PreMidiSend}"
+                                     SelectedItem="{Binding Editor.SelectedPreMidiSend}"
+                                     MaxHeight="80" Margin="0,0,0,4">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Summary}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Button Content="+ MIDI" Padding="6,2" Margin="0,0,6,0"
+                                        Command="{Binding Editor.AddPreMidiSendCommand}"/>
+                                <Button Content="🗑"  Padding="6,2"
+                                        Command="{Binding Editor.RemovePreMidiSendCommand}"
+                                        CommandParameter="{Binding Editor.SelectedPreMidiSend}"
+                                        IsEnabled="{Binding Editor.SelectedPreMidiSend, Converter={StaticResource NotNull}}"/>
+                            </StackPanel>
+                            <Border Visibility="{Binding Editor.SelectedPreMidiSend, Converter={StaticResource NotNullToVisibility}}"
+                                    BorderThickness="1" BorderBrush="#CCCCCC" Background="#FAFAFA" Padding="8">
+                                <local:MidiSendEditor DataContext="{Binding Editor.SelectedPreMidiSend}"
+                                                      ActiveDevices="{Binding DataContext.ActiveDevices,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            </Border>
+                        </StackPanel>
+                    </GroupBox>
 
                     <!-- Mitschnitt -->
                     <GroupBox Header="MIDI-Mitschnitt" Margin="0,0,0,10" Padding="8">
@@ -234,10 +322,11 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Tasten:"
-                                               VerticalAlignment="Center" Margin="0,0,0,6"
-                                               ToolTip="Komma-getrennte Tastenbezeichnungen, z.B. CTRL,C"/>
-                                    <TextBox   Grid.Row="0" Grid.Column="1"
-                                               Text="{Binding Keys, UpdateSourceTrigger=PropertyChanged}"
+                                               VerticalAlignment="Top" Margin="0,4,0,6"
+                                               ToolTip="Modifier + Haupttaste wählen"/>
+                                    <local:KeyComboEditor
+                                               Grid.Row="0" Grid.Column="1"
+                                               KeysValue="{Binding Keys, UpdateSourceTrigger=PropertyChanged}"
                                                Margin="0,0,0,6"/>
 
                                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Wiederh.:"
@@ -259,6 +348,254 @@
                                 </Grid>
                             </Border>
                         </Grid>
+                    </GroupBox>
+
+                    <!-- ── Post-Zuweisungen ─────────────────────────────── -->
+                    <GroupBox Header="Post: Variablen &amp; MIDI-Send (nach Aktionen)" Margin="0,0,0,10" Padding="8">
+                        <StackPanel>
+                            <!-- Variablen-Zuweisungen -->
+                            <TextBlock Text="Variablen setzen:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ListBox ItemsSource="{Binding Editor.PostAssignments}"
+                                     SelectedItem="{Binding Editor.SelectedPostAssignment}"
+                                     MaxHeight="80" Margin="0,0,0,4">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Summary}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Button Content="+ Variable" Padding="6,2" Margin="0,0,6,0"
+                                        Command="{Binding Editor.AddPostAssignmentCommand}"/>
+                                <Button Content="🗑" Padding="6,2"
+                                        Command="{Binding Editor.RemovePostAssignmentCommand}"
+                                        CommandParameter="{Binding Editor.SelectedPostAssignment}"
+                                        IsEnabled="{Binding Editor.SelectedPostAssignment, Converter={StaticResource NotNull}}"/>
+                            </StackPanel>
+                            <Border Visibility="{Binding Editor.SelectedPostAssignment, Converter={StaticResource NotNullToVisibility}}"
+                                    BorderThickness="1" BorderBrush="#CCCCCC" Background="#FAFAFA" Padding="8" Margin="0,0,0,8">
+                                <Grid DataContext="{Binding Editor.SelectedPostAssignment}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Variable:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                    <ComboBox  Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
+                                               ItemsSource="{x:Static local:ValueSourceNamesProxy.Variables}"
+                                               SelectedItem="{Binding Variable}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Quelle:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                    <ComboBox  Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"
+                                               ItemsSource="{x:Static local:ValueSourceNamesProxy.WritableSources}"
+                                               SelectedItem="{Binding Source}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Wert:"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding FixedVisible, Converter={StaticResource BoolToVisibility}}"/>
+                                    <TextBox   Grid.Row="2" Grid.Column="1"
+                                               Text="{Binding FixedValue, UpdateSourceTrigger=PropertyChanged}"
+                                               Visibility="{Binding FixedVisible, Converter={StaticResource BoolToVisibility}}"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- MIDI-Send -->
+                            <TextBlock Text="MIDI senden:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ListBox ItemsSource="{Binding Editor.PostMidiSend}"
+                                     SelectedItem="{Binding Editor.SelectedPostMidiSend}"
+                                     MaxHeight="80" Margin="0,0,0,4">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Summary}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Button Content="+ MIDI" Padding="6,2" Margin="0,0,6,0"
+                                        Command="{Binding Editor.AddPostMidiSendCommand}"/>
+                                <Button Content="🗑" Padding="6,2"
+                                        Command="{Binding Editor.RemovePostMidiSendCommand}"
+                                        CommandParameter="{Binding Editor.SelectedPostMidiSend}"
+                                        IsEnabled="{Binding Editor.SelectedPostMidiSend, Converter={StaticResource NotNull}}"/>
+                            </StackPanel>
+                            <Border Visibility="{Binding Editor.SelectedPostMidiSend, Converter={StaticResource NotNullToVisibility}}"
+                                    BorderThickness="1" BorderBrush="#CCCCCC" Background="#FAFAFA" Padding="8">
+                                <local:MidiSendEditor DataContext="{Binding Editor.SelectedPostMidiSend}"
+                                                      ActiveDevices="{Binding DataContext.ActiveDevices,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            </Border>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!-- ── Bedingungen (IF) ─────────────────────────────── -->
+                    <GroupBox Header="Bedingungen (IF – leer = immer ausführen)" Margin="0,0,0,10" Padding="8">
+                        <StackPanel>
+                            <ListBox ItemsSource="{Binding Editor.ConditionBlocks}"
+                                     SelectedItem="{Binding Editor.SelectedConditionBlock}"
+                                     MaxHeight="80" Margin="0,0,0,4">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Summary}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Button Content="+ Block" Padding="6,2" Margin="0,0,6,0"
+                                        Command="{Binding Editor.AddConditionBlockCommand}"/>
+                                <Button Content="🗑" Padding="6,2"
+                                        Command="{Binding Editor.RemoveConditionBlockCommand}"
+                                        CommandParameter="{Binding Editor.SelectedConditionBlock}"
+                                        IsEnabled="{Binding Editor.SelectedConditionBlock, Converter={StaticResource NotNull}}"/>
+                            </StackPanel>
+
+                            <!-- Inline-Editor des gewählten Condition-Blocks -->
+                            <Border Visibility="{Binding Editor.SelectedConditionBlock, Converter={StaticResource NotNullToVisibility}}"
+                                    BorderThickness="1" BorderBrush="#CCCCCC" Background="#FAFAFA" Padding="8">
+                                <StackPanel DataContext="{Binding Editor.SelectedConditionBlock}">
+                                    <!-- Template-Option -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                        <CheckBox Content="Template verwenden" IsChecked="{Binding UseTemplate}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal"
+                                                Visibility="{Binding UseTemplate, Converter={StaticResource BoolToVisibility}}"
+                                                Margin="0,0,0,6">
+                                        <TextBlock Text="Template:" VerticalAlignment="Center" Width="70"/>
+                                        <TextBox Text="{Binding TemplateName, UpdateSourceTrigger=PropertyChanged}" MinWidth="160"/>
+                                    </StackPanel>
+
+                                    <!-- Inline-Bedingungen (OR-verknüpft) -->
+                                    <StackPanel Visibility="{Binding UseTemplate, Converter={StaticResource InverseBoolToVisibility}}">
+                                        <TextBlock Text="Bedingungen (ODER-verknüpft):" FontStyle="Italic" Margin="0,0,0,4"/>
+                                        <ListBox ItemsSource="{Binding Conditions}"
+                                                 SelectedItem="{Binding SelectedCondition}"
+                                                 MaxHeight="80" Margin="0,0,0,4">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Summary}"/>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <Button Content="+ Bed." Padding="6,2" Margin="0,0,6,0"
+                                                    Command="{Binding AddConditionCommand}"/>
+                                            <Button Content="🗑" Padding="6,2"
+                                                    Command="{Binding RemoveConditionCommand}"
+                                                    CommandParameter="{Binding SelectedCondition}"
+                                                    IsEnabled="{Binding SelectedCondition, Converter={StaticResource NotNull}}"/>
+                                        </StackPanel>
+                                        <!-- Inline-Editor der gewählten Condition -->
+                                        <Border Visibility="{Binding SelectedCondition, Converter={StaticResource NotNullToVisibility}}"
+                                                BorderThickness="1" BorderBrush="#DDDDDD" Background="White" Padding="6">
+                                            <Grid DataContext="{Binding SelectedCondition}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="65"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Links:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                                <ComboBox  Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
+                                                           ItemsSource="{x:Static local:ValueSourceNamesProxy.ConditionSources}"
+                                                           SelectedItem="{Binding Left}"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Op:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                                <ComboBox  Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"
+                                                           ItemsSource="{x:Static local:ValueSourceNamesProxy.CompareOps}"
+                                                           SelectedItem="{Binding Op}"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Rechts:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                                <ComboBox  Grid.Row="2" Grid.Column="1" Margin="0,0,0,4"
+                                                           ItemsSource="{x:Static local:ValueSourceNamesProxy.ConditionSources}"
+                                                           SelectedItem="{Binding RightSource}"/>
+                                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Wert:"
+                                                           VerticalAlignment="Center"
+                                                           Visibility="{Binding RightFixedVisible, Converter={StaticResource BoolToVisibility}}"/>
+                                                <TextBox   Grid.Row="3" Grid.Column="1"
+                                                           Text="{Binding RightFixed, UpdateSourceTrigger=PropertyChanged}"
+                                                           Visibility="{Binding RightFixedVisible, Converter={StaticResource BoolToVisibility}}"/>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!-- ── ELSE-Zweig ───────────────────────────────────── -->
+                    <GroupBox Margin="0,0,0,10" Padding="8">
+                        <GroupBox.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox IsChecked="{Binding Editor.HasElse}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="ELSE-Zweig aktivieren" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </GroupBox.Header>
+                        <StackPanel Visibility="{Binding Editor.HasElse, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="ELSE-Aktionen:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ListBox ItemsSource="{Binding Editor.Else.Actions}"
+                                     SelectedItem="{Binding Editor.Else.SelectedAction}"
+                                     MaxHeight="80" Margin="0,0,0,4">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding Summary}"/></DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button Content="+ Aktion" Padding="6,2" Margin="0,0,6,0"
+                                        Command="{Binding Editor.Else.AddActionCommand}"/>
+                                <Button Content="🗑" Padding="6,2"
+                                        Command="{Binding Editor.Else.RemoveActionCommand}"
+                                        CommandParameter="{Binding Editor.Else.SelectedAction}"
+                                        IsEnabled="{Binding Editor.Else.SelectedAction, Converter={StaticResource NotNull}}"/>
+                            </StackPanel>
+
+                            <TextBlock Text="ELSE Post-Variablen:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <ListBox ItemsSource="{Binding Editor.Else.PostAssignments}"
+                                     SelectedItem="{Binding Editor.Else.SelectedPostAssignment}"
+                                     MaxHeight="60" Margin="0,0,0,4">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding Summary}"/></DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <Button Content="+ Variable" Padding="6,2" Margin="0,0,6,0"
+                                        Command="{Binding Editor.Else.AddPostAssignmentCommand}"/>
+                                <Button Content="🗑" Padding="6,2"
+                                        Command="{Binding Editor.Else.RemovePostAssignmentCommand}"
+                                        CommandParameter="{Binding Editor.Else.SelectedPostAssignment}"
+                                        IsEnabled="{Binding Editor.Else.SelectedPostAssignment, Converter={StaticResource NotNull}}"/>
+                            </StackPanel>
+                            <Border Visibility="{Binding Editor.Else.SelectedPostAssignment, Converter={StaticResource NotNullToVisibility}}"
+                                    BorderThickness="1" BorderBrush="#CCCCCC" Background="#FAFAFA" Padding="8" Margin="0,0,0,8">
+                                <Grid DataContext="{Binding Editor.Else.SelectedPostAssignment}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="70"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Variable:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                    <ComboBox  Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"
+                                               ItemsSource="{x:Static local:ValueSourceNamesProxy.Variables}"
+                                               SelectedItem="{Binding Variable}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Quelle:" VerticalAlignment="Center" Margin="0,0,0,4"/>
+                                    <ComboBox  Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"
+                                               ItemsSource="{x:Static local:ValueSourceNamesProxy.WritableSources}"
+                                               SelectedItem="{Binding Source}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Wert:"
+                                               VerticalAlignment="Center"
+                                               Visibility="{Binding FixedVisible, Converter={StaticResource BoolToVisibility}}"/>
+                                    <TextBox   Grid.Row="2" Grid.Column="1"
+                                               Text="{Binding FixedValue, UpdateSourceTrigger=PropertyChanged}"
+                                               Visibility="{Binding FixedVisible, Converter={StaticResource BoolToVisibility}}"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
                     </GroupBox>
 
                     <!-- Footer-Buttons -->

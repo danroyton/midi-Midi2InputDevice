@@ -5,6 +5,7 @@
              xmlns:conv="clr-namespace:MidiControllerFrontend.Converters">
     <Application.Resources>
         <conv:BoolToVisibilityConverter     x:Key="BoolToVisibility"/>
+        <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
         <conv:BoolNegateConverter           x:Key="BoolNegate"/>
         <conv:NotNullConverter              x:Key="NotNull"/>
         <conv:NotNullToVisibilityConverter  x:Key="NotNullToVisibility"/>

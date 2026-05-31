@@ -15,6 +15,9 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // App läuft weiter, wenn das Hauptfenster geschlossen wird (→ Tray)
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
         var config = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
@@ -24,7 +27,17 @@ public partial class App : Application
         ConfigureServices(collection, config);
         Services = collection.BuildServiceProvider();
 
-        Services.GetRequiredService<MainWindow>().Show();
+        var mainWindow = Services.GetRequiredService<MainWindow>();
+
+        // TrayService erzeugen – braucht MainWindow und MainViewModel
+        var trayService = new TrayService(
+            Services.GetRequiredService<MainViewModel>(),
+            mainWindow);
+
+        // Beim App-Shutdown TrayService aufräumen
+        Exit += (_, _) => trayService.Dispose();
+
+        mainWindow.Show();
     }
 
     private static void ConfigureServices(IServiceCollection services, IConfiguration config)
@@ -43,7 +56,9 @@ public partial class App : Application
         services.AddSingleton<StatusViewModel>(sp =>
             new StatusViewModel($"{backend.BaseUrl}/hubs/status", sp.GetRequiredService<ApiClient>()));
         services.AddSingleton<MidiLogViewModel>(sp =>
-            new MidiLogViewModel($"{backend.BaseUrl}/hubs/midilog", sp.GetRequiredService<ApiClient>()));
+            new MidiLogViewModel($"{backend.BaseUrl}/hubs/midilog",
+                sp.GetRequiredService<ApiClient>(),
+                sp.GetRequiredService<MainViewModel>()));
         services.AddSingleton<DevicesViewModel>();
         services.AddSingleton<MappingsViewModel>(sp =>
             new MappingsViewModel(

@@ -26,7 +26,15 @@ public record Trigger(
     ActionBlock[] Actions,                   // 1..n, sequenziell ausgeführt
     StateAssignment[] GlobalPostAssignments, // immer nach allen Aktionen ausgeführt
     TriggerConfig? ElseConfig                // optional: Alternativpfad bei Fehlschlag
-);
+)
+{
+    /// <summary>Optionaler benutzerfreundlicher Anzeigename.</summary>
+    public string Name { get; init; } = string.Empty;
+    /// <summary>MIDI-Befehle, die vor den Prüfblöcken gesendet werden.</summary>
+    public MidiSendCommand[] GlobalPreMidiSend  { get; init; } = [];
+    /// <summary>MIDI-Befehle, die nach allen Aktionen gesendet werden.</summary>
+    public MidiSendCommand[] GlobalPostMidiSend { get; init; } = [];
+};
 
 /// <summary>
 /// ELSE-Zweig eines Triggers: eigene Prüfblöcke + Aktionsfolge.

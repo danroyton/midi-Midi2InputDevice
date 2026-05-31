@@ -1,0 +1,53 @@
+<UserControl x:Class="MidiControllerFrontend.Views.KeyComboEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             x:Name="Root">
+
+    <StackPanel>
+        <!-- Drei ComboBoxen nebeneinander -->
+        <StackPanel Orientation="Horizontal">
+
+            <!-- Modifier 1 -->
+            <ComboBox x:Name="Modifier1Box"
+                      ItemsSource="{Binding Modifiers, ElementName=Root}"
+                      SelectedItem="{Binding SelectedModifier1, ElementName=Root, Mode=TwoWay}"
+                      MinWidth="72" Margin="0,0,4,0"
+                      ToolTip="Erster Modifier (optional)"/>
+
+            <!-- + Trenner -->
+            <TextBlock Text="+" VerticalAlignment="Center" Margin="0,0,4,0"
+                       Foreground="#888"
+                       Visibility="{Binding Modifier1Active, ElementName=Root,
+                                    Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- Modifier 2 -->
+            <ComboBox x:Name="Modifier2Box"
+                      ItemsSource="{Binding Modifiers, ElementName=Root}"
+                      SelectedItem="{Binding SelectedModifier2, ElementName=Root, Mode=TwoWay}"
+                      MinWidth="72" Margin="0,0,4,0"
+                      ToolTip="Zweiter Modifier (optional)"/>
+
+            <!-- + Trenner -->
+            <TextBlock Text="+" VerticalAlignment="Center" Margin="0,0,4,0"
+                       Foreground="#888"
+                       Visibility="{Binding AnyModifierActive, ElementName=Root,
+                                    Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- Haupttaste -->
+            <ComboBox x:Name="MainKeyBox"
+                      ItemsSource="{Binding MainKeys, ElementName=Root}"
+                      SelectedItem="{Binding SelectedMainKey, ElementName=Root, Mode=TwoWay}"
+                      MinWidth="90"
+                      ToolTip="Haupttaste"/>
+        </StackPanel>
+
+        <!-- Vorschau der erzeugten Key-Kombination -->
+        <TextBlock x:Name="PreviewBlock"
+                   Text="{Binding Preview, ElementName=Root}"
+                   Foreground="#555" FontStyle="Italic" FontSize="11"
+                   Margin="0,3,0,0"/>
+    </StackPanel>
+</UserControl>

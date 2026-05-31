@@ -45,6 +45,22 @@ public partial class MainWindow : Window
         Navigate("Status");
     }
 
+    // ── Tray-Verhalten ───────────────────────────────────────────────────────
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        // Fenster nicht wirklich schließen – in Tray verstecken
+        e.Cancel = true;
+        Hide();
+    }
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        if (WindowState == WindowState.Minimized)
+            Hide();
+    }
+
     protected override async void OnContentRendered(EventArgs e)
     {
         base.OnContentRendered(e);

@@ -13,6 +13,18 @@ public record StateAssignment(
 );
 
 /// <summary>
+/// Sendet einen MIDI-Befehl an ein bestimmtes Output-Gerät.
+/// Wird als Pre/Post-Schritt in Triggern verwendet.
+/// </summary>
+public record MidiSendCommand(
+    string  DeviceId,
+    string  EventType,   // NoteOn | NoteOff | ControlChange | ProgramChange | PitchBend
+    int     Channel,
+    int     Data1,
+    int     Data2
+);
+
+/// <summary>
 /// Eine einzelne ausführbare Aktion: optionaler Tastendruck gefolgt von State-Änderungen.
 /// Mehrere ActionBlocks pro Trigger werden sequenziell ausgeführt.
 /// </summary>

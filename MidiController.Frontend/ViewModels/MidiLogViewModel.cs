@@ -17,6 +17,7 @@ public sealed partial class MidiLogViewModel : ObservableObject, IAsyncDisposabl
     private readonly SignalRClientService _client;
     private readonly ApiClient           _api;
     private readonly Dispatcher          _dispatcher;
+    private readonly MainViewModel?      _mainVm;
 
     public string ConnectionState
     {
@@ -36,9 +37,10 @@ public sealed partial class MidiLogViewModel : ObservableObject, IAsyncDisposabl
 
     public ObservableCollection<MidiLogEntry> Entries { get; } = new();
 
-    public MidiLogViewModel(string hubUrl, ApiClient api)
+    public MidiLogViewModel(string hubUrl, ApiClient api, MainViewModel? mainVm = null)
     {
         _api        = api;
+        _mainVm     = mainVm;
         _dispatcher = Dispatcher.CurrentDispatcher;
         _client     = new SignalRClientService(hubUrl);
 
@@ -107,6 +109,8 @@ public sealed partial class MidiLogViewModel : ObservableObject, IAsyncDisposabl
                 Channel:   msg.Channel,
                 Data1:     msg.Data1,
                 Data2:     msg.Data2));
+
+            _mainVm?.NotifyMidiActivity();
         });
     }
 
