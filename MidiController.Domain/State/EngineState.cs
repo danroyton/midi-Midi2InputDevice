@@ -21,8 +21,6 @@ public static class EngineState
         new Dictionary<char, string>
         {
             ['A'] = "ActiveListen",
-            ['V'] = "DeltaData1",
-            ['W'] = "DeltaData2",
             ['X'] = "Repeat",
             ['Y'] = "KeyDuration",
             ['Z'] = "Pause",
@@ -42,5 +40,5 @@ public static class EngineState
     /// Variablen, die nicht frei beschreibbar sind (nur über definierte Mechanismen).
     /// </summary>
     public static readonly IReadOnlySet<char> ReservedVariables =
-        new HashSet<char> { 'A', 'V', 'W' };
+        new HashSet<char> { 'A' };
 }

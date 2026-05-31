@@ -67,8 +67,6 @@ Alle persistenten Variablen (**A–Z**) haben den Wertebereich **-127 … +127**
 |---|---|---|---|---|
 | `A` | `ActiveListen` | **2** | **Ja** | **Aktivierungs-Gate** (siehe 2.4.2) |
 | `B` – `U` | – | 0 | Nein | Frei verwendbare Zustands-Variablen |
-| `V` | `DeltaData1` | 0 | **Ja** | Differenz von Data1 zum letzten Event desselben Typs/Kanals |
-| `W` | `DeltaData2` | 0 | **Ja** | Differenz von Data2 zum letzten Event desselben Typs/Kanals |
 | `X` | `Repeat` | 1 | Nein | Anzahl Tastenwiederholungen (Default: 1) |
 | `Y` | `KeyDuration` | 0 | Nein | Dauer des Tastendrucks in ms (Default: 0 = kurzer Tap) |
 | `Z` | `Pause` | 0 | Nein | Pause nach dem Tastendruck in ms (Default: 0) |
@@ -77,16 +75,13 @@ Zusätzlich stellt das Backend nach jedem Event folgende **berechnete Lesewerte*
 
 | Bezeichner | Wertebereich | Beschreibung |
 |---|---|---|
-| `DD1PosAbs` | 0 – 127 | Absoluter Betrag von DeltaData1, wenn Δ > 0; sonst 0 |
-| `DD1NegAbs` | 0 – 127 | Absoluter Betrag von DeltaData1, wenn Δ < 0; sonst 0 |
-| `DD2PosAbs` | 0 – 127 | Absoluter Betrag von DeltaData2, wenn Δ > 0; sonst 0 |
-| `DD2NegAbs` | 0 – 127 | Absoluter Betrag von DeltaData2, wenn Δ < 0; sonst 0 |
-| `DD1Pos` | 0 oder 1 | 1 wenn DeltaData1 > 0, sonst 0 |
-| `DD1Neg` | 0 oder 1 | 1 wenn DeltaData1 < 0, sonst 0 |
-| `DD2Pos` | 0 oder 1 | 1 wenn DeltaData2 > 0, sonst 0 |
-| `DD2Neg` | 0 oder 1 | 1 wenn DeltaData2 < 0, sonst 0 |
+| `DeltaData2` | -127 – 127 | Differenz von Data2 zum letzten Event desselben Type+Channel+Data1 (0 beim ersten Auftreten) |
+| `DD2Positive` | 0 – 127 | Absoluter Betrag von DeltaData2, wenn Δ > 0; sonst 0 |
+| `DD2Negative` | 0 – 127 | Absoluter Betrag von DeltaData2, wenn Δ < 0; sonst 0 |
 
-> **Regel:** Ist der Delta-Wert 0, sind alle zugehörigen Ableitungen (`*PosAbs`, `*NegAbs`, `*Pos`, `*Neg`) ebenfalls 0. Die Abs-Werte sind immer ≥ 0 (kein Vorzeichen). Dadurch kann man positive und negative Encoder-Bewegungen ohne ELSE-Zweig abbilden, indem zwei Aktionen je mit `DD1PosAbs`/`DD1NegAbs` als X/Y/Z-Quelle konfiguriert werden – eine feuert nur bei positiver, die andere nur bei negativer Drehrichtung.
+> **Tracking-Regel:** Für jeden Triple-Key `(Type, Channel, Data1)` wird der zuletzt gesehene `Data2`-Wert gespeichert. Liegt beim ersten Auftreten dieses Keys noch kein Eintrag vor, wird der aktuelle `Data2`-Wert als Vorgänger angenommen → Delta = 0. Das verhindert unerwünschte Sprungwerte bei Schaltern mit festen Offset-Werten.
+
+> **Verwendung:** Zwei Aktionen mit `DD2Positive` bzw. `DD2Negative` als X-Quelle decken positive und negative Encoder-Drehrichtungen ohne ELSE-Zweig ab – die Aktion mit dem Wert 0 sendet 0 Wiederholungen und hat keinen Effekt.
 
 ##### Variable A – Aktivierungs-Gate
 
@@ -98,16 +93,17 @@ Zusätzlich stellt das Backend nach jedem Event folgende **berechnete Lesewerte*
 
 > **Hinweis:** `A` darf in Prüfbedingungen gelesen, aber **nicht** als freie Variable für andere Zwecke genutzt werden. In `stateAssignments` ist eine Zuweisung an `A` explizit erlaubt (um den Schalter umzulegen).
 
-##### Variablen V und W – Delta-Werte
+##### DeltaData2 – Tracking-Mechanismus
 
-Das Backend hält pro MIDI-Device + EventType + Channel + Data1 den zuletzt gesehenen `Data2`-Wert (bzw. `Data1`-Wert für V) in einem Dictionary. Nach jedem eingehenden Event werden V und W **vor** der Triggerauswertung aktualisiert:
+Das Backend hält pro `(Type, Channel, Data1)` den zuletzt gesehenen `Data2`-Wert in einer HashMap. Nach jedem eingehenden Event wird `DeltaData2` **vor** der Triggerauswertung berechnet:
 
 ```
-V = Data1_aktuell - Data1_vorheriges  (0 beim ersten Event)
-W = Data2_aktuell - Data2_vorheriges  (0 beim ersten Event)
+prev = map[(Type, Channel, Data1)]  falls vorhanden, sonst Data2_aktuell
+DeltaData2 = Data2_aktuell - prev
+map[(Type, Channel, Data1)] = Data2_aktuell
 ```
 
-V und W können in Bedingungen und als Quelle für X/Y/Z-Zuweisungen genutzt werden (Quellname `DeltaData1` / `DeltaData2`).
+Der Fallback `prev = Data2_aktuell` stellt sicher, dass Delta = 0 ist, wenn ein Key zum ersten Mal auftaucht. Das vermeidet fehlerhafte Sprünge bei Schaltern oder Reglern mit festem Offset-Startwert.
 
 #### 2.4.2 Trigger-Auswertung (pro eingehendem MidiEvent)
 
@@ -178,16 +174,9 @@ public enum ValueSource
 	Fixed,         // harter Wert
 	MidiData1,
 	MidiData2,
-	DeltaData1,    // V: Differenz Data1 zum Vorgänger (-127…+127)
-	DeltaData2,    // W: Differenz Data2 zum Vorgänger (-127…+127)
-	DD1PosAbs,     // |ΔData1| wenn Δ>0, sonst 0  (0…127)
-	DD1NegAbs,     // |ΔData1| wenn Δ<0, sonst 0  (0…127)
-	DD2PosAbs,     // |ΔData2| wenn Δ>0, sonst 0  (0…127)
-	DD2NegAbs,     // |ΔData2| wenn Δ<0, sonst 0  (0…127)
-	DD1Pos,        // 1 wenn ΔData1>0, sonst 0
-	DD1Neg,        // 1 wenn ΔData1<0, sonst 0
-	DD2Pos,        // 1 wenn ΔData2>0, sonst 0
-	DD2Neg,        // 1 wenn ΔData2<0, sonst 0
+	DeltaData2,    // Differenz Data2 zum Vorgänger unter (Type, Channel, Data1) (-127…+127)
+	DD2Positive,   // |ΔData2| wenn Δ>0, sonst 0  (0…127)
+	DD2Negative,   // |ΔData2| wenn Δ<0, sonst 0  (0…127)
 	VariableA, VariableB, VariableC, VariableD, VariableE,
 	VariableF, VariableG, VariableH, VariableI, VariableJ,
 	VariableK, VariableL, VariableM, VariableN, VariableO,
@@ -220,6 +209,16 @@ public record ActionBlock(
 	StateAssignment[] StateAssignments     // Zuweisungen nach dem Tastendruck
 );
 
+// Vierter Matching-Parameter
+public enum TriggerMatchMode
+{
+	Variable,    // feuert bei jedem Data2-Wert (kein Data2-Filter)
+	Data2,       // Data2 == MatchValue
+	DeltaData2,  // DeltaData2 == MatchValue
+	DD2Positive, // |ΔData2| wenn Δ>0, sonst 0  == MatchValue
+	DD2Negative, // |ΔData2| wenn Δ<0, sonst 0  == MatchValue
+}
+
 public record StateAssignment(char Variable, ValueSource Source, int FixedValue);
 
 // Vollständiger Trigger
@@ -229,6 +228,8 @@ public record Trigger(
 	MidiEventType    EventType,
 	int              Channel,
 	int?             Data1Filter,          // null = beliebig
+	TriggerMatchMode MatchMode,            // vierter Matching-Parameter (Data2-Ebene)
+	int              MatchValue,           // Zielwert (ignoriert bei MatchMode.Variable)
 	StateAssignment[] GlobalPreAssignments, // Schritt 0: immer vor Prüfblöcken
 	ConditionBlock[] ConditionBlocks,       // 1..n, UND-verknüpft
 	ActionBlock[]    Actions,               // 1..n Aktionen, sequenziell ausgeführt
@@ -312,6 +313,9 @@ Speicherort: `%ProgramData%\MidiController\profiles\`
 	  "eventType": "ControlChange",
 	  "channel": 1,
 	  "data1Filter": 16,
+	  // vierter Matching-Parameter: "Variable" = feuert bei jedem Data2-Wert
+	  "matchMode": "Variable",
+	  "matchValue": 0,
 	  // Schritt 0: immer ausgeführt – B (Sperr-Flag) auf 1 setzen
 	  "globalPreAssignments": [
 		{ "variable": "B", "source": "Fixed", "fixedValue": 1 }
@@ -333,16 +337,16 @@ Speicherort: `%ProgramData%\MidiController\profiles\`
 	  "actions": [
 		{
 		  "keyCombination": ["VolumeUp"],
-		  "xSource": "DD1PosAbs", "xFixed": 1,
-		  "ySource": "Fixed",     "yFixed": 0,
-		  "zSource": "Fixed",     "zFixed": 0,
+		  "xSource": "DD2Positive", "xFixed": 1,
+		  "ySource": "Fixed",       "yFixed": 0,
+		  "zSource": "Fixed",       "zFixed": 0,
 		  "stateAssignments": []
 		},
 		{
 		  "keyCombination": ["VolumeDown"],
-		  "xSource": "DD1NegAbs", "xFixed": 1,
-		  "ySource": "Fixed",     "yFixed": 0,
-		  "zSource": "Fixed",     "zFixed": 0,
+		  "xSource": "DD2Negative", "xFixed": 1,
+		  "ySource": "Fixed",       "yFixed": 0,
+		  "zSource": "Fixed",       "zFixed": 0,
 		  "stateAssignments": []
 		}
 	  ],

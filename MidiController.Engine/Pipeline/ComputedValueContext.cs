@@ -4,42 +4,27 @@ namespace MidiController.Engine.Pipeline;
 
 /// <summary>
 /// Fasst alle Laufzeitwerte zusammen, die während der Auswertung eines einzelnen MidiEvents
-/// zur Verfügung stehen: das Event selbst, Delta-Werte und alle davon abgeleiteten Lesewerte.
+/// zur Verfügung stehen: das Event selbst, DeltaData2 und die davon abgeleiteten Lesewerte.
 /// </summary>
 public sealed class ComputedValueContext
 {
     public MidiEvent Event { get; }
 
-    // V / W – rohe Delta-Werte (können negativ sein)
-    public int DeltaData1 { get; }
+    /// <summary>Differenz von Data2 zum vorherigen Event unter demselben (Type, Channel, Data1)-Key. 0 beim ersten Auftreten.</summary>
     public int DeltaData2 { get; }
 
-    // DD1-Ableitungen
-    public int DD1PosAbs { get; }  // |ΔData1| wenn Δ>0, sonst 0
-    public int DD1NegAbs { get; }  // |ΔData1| wenn Δ<0, sonst 0
-    public int DD1Pos    { get; }  // 1 wenn Δ>0, sonst 0
-    public int DD1Neg    { get; }  // 1 wenn Δ<0, sonst 0
+    /// <summary>Absoluter Betrag von DeltaData2, wenn Δ > 0; sonst 0.</summary>
+    public int DD2Positive { get; }
 
-    // DD2-Ableitungen
-    public int DD2PosAbs { get; }
-    public int DD2NegAbs { get; }
-    public int DD2Pos    { get; }
-    public int DD2Neg    { get; }
+    /// <summary>Absoluter Betrag von DeltaData2, wenn Δ &lt; 0; sonst 0.</summary>
+    public int DD2Negative { get; }
 
-    public ComputedValueContext(MidiEvent midiEvent, int deltaData1, int deltaData2)
+    public ComputedValueContext(MidiEvent midiEvent, int deltaData2)
     {
         Event      = midiEvent;
-        DeltaData1 = deltaData1;
         DeltaData2 = deltaData2;
 
-        DD1PosAbs = deltaData1 > 0 ? deltaData1 : 0;
-        DD1NegAbs = deltaData1 < 0 ? -deltaData1 : 0;
-        DD1Pos    = deltaData1 > 0 ? 1 : 0;
-        DD1Neg    = deltaData1 < 0 ? 1 : 0;
-
-        DD2PosAbs = deltaData2 > 0 ? deltaData2 : 0;
-        DD2NegAbs = deltaData2 < 0 ? -deltaData2 : 0;
-        DD2Pos    = deltaData2 > 0 ? 1 : 0;
-        DD2Neg    = deltaData2 < 0 ? 1 : 0;
+        DD2Positive = deltaData2 > 0 ? deltaData2 : 0;
+        DD2Negative = deltaData2 < 0 ? -deltaData2 : 0;
     }
 }

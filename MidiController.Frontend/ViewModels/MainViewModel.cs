@@ -39,7 +39,11 @@ public sealed partial class MainViewModel : ObservableObject
     public string? SelectedProfile
     {
         get => _selectedProfile;
-        set => SetProperty(ref _selectedProfile, value);
+        set
+        {
+            if (SetProperty(ref _selectedProfile, value))
+                DeleteProfileCommand.NotifyCanExecuteChanged();
+        }
     }
     private string? _selectedProfile;
 
@@ -116,6 +120,16 @@ public sealed partial class MainViewModel : ObservableObject
         await LoadProfilesAsync();
         SelectedProfile = id;
     }
+
+    [RelayCommand(CanExecute = nameof(HasProfileSelection))]
+    private async Task DeleteProfileAsync()
+    {
+        if (SelectedProfile is null) return;
+        await _api.DeleteProfileAsync(SelectedProfile);
+        await LoadProfilesAsync();
+    }
+
+    private bool HasProfileSelection => SelectedProfile is not null;
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 

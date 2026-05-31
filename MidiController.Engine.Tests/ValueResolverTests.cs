@@ -9,9 +9,9 @@ namespace MidiController.Engine.Tests;
 public class ValueResolverTests
 {
     private static ComputedValueContext MakeCtx(int data1 = 10, int data2 = 64,
-        int deltaData1 = 3, int deltaData2 = -2) =>
+        int deltaData2 = -2) =>
         new(new MidiEvent("dev", MidiEventType.ControlChange, 1, data1, data2, 0),
-            deltaData1, deltaData2);
+            deltaData2);
 
     [Fact]
     public void Resolve_Fixed_ReturnsFixedValue()
@@ -28,17 +28,38 @@ public class ValueResolverTests
     }
 
     [Fact]
-    public void Resolve_DD1PosAbs_ReturnsAbsPositiveDelta()
+    public void Resolve_DeltaData2_ReturnsDelta()
     {
         var resolver = new ValueResolver(new VariableStore());
-        Assert.Equal(3, resolver.Resolve(ValueSource.DD1PosAbs, 0, MakeCtx(deltaData1: 3)));
+        Assert.Equal(5, resolver.Resolve(ValueSource.DeltaData2, 0, MakeCtx(deltaData2: 5)));
     }
 
     [Fact]
-    public void Resolve_DD1PosAbs_ReturnsZero_WhenDeltaNegative()
+    public void Resolve_DD2Positive_ReturnsAbsPositiveDelta()
     {
         var resolver = new ValueResolver(new VariableStore());
-        Assert.Equal(0, resolver.Resolve(ValueSource.DD1PosAbs, 0, MakeCtx(deltaData1: -3)));
+        Assert.Equal(3, resolver.Resolve(ValueSource.DD2Positive, 0, MakeCtx(deltaData2: 3)));
+    }
+
+    [Fact]
+    public void Resolve_DD2Positive_ReturnsZero_WhenDeltaNegative()
+    {
+        var resolver = new ValueResolver(new VariableStore());
+        Assert.Equal(0, resolver.Resolve(ValueSource.DD2Positive, 0, MakeCtx(deltaData2: -3)));
+    }
+
+    [Fact]
+    public void Resolve_DD2Negative_ReturnsAbsNegativeDelta()
+    {
+        var resolver = new ValueResolver(new VariableStore());
+        Assert.Equal(3, resolver.Resolve(ValueSource.DD2Negative, 0, MakeCtx(deltaData2: -3)));
+    }
+
+    [Fact]
+    public void Resolve_DD2Negative_ReturnsZero_WhenDeltaPositive()
+    {
+        var resolver = new ValueResolver(new VariableStore());
+        Assert.Equal(0, resolver.Resolve(ValueSource.DD2Negative, 0, MakeCtx(deltaData2: 3)));
     }
 
     [Fact]

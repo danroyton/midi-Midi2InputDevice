@@ -41,6 +41,11 @@
                             Command="{Binding NewProfileCommand}"
                             Padding="8,2" Margin="0,0,4,0"
                             Background="#2196F3" Foreground="White" BorderThickness="0"/>
+                    <Button Content="🗑"
+                            Command="{Binding DeleteProfileCommand}"
+                            ToolTip="Profil löschen"
+                            Padding="8,2" Margin="0,0,4,0"
+                            Background="#F44336" Foreground="White" BorderThickness="0"/>
                     <Button Content="Aktivieren"
                             Command="{Binding ActivateProfileCommand}"
                             Padding="8,2" Background="#4CAF50" Foreground="White"
@@ -60,6 +65,8 @@
                         Foreground="White" Command="{Binding NavigateCommand}" CommandParameter="Templates"/>
                 <Button Content="Log"       Tag="Log"       Style="{StaticResource NavButtonStyle}"
                         Foreground="White" Command="{Binding NavigateCommand}" CommandParameter="Log"/>
+                <Button Content="KeyTest"   Tag="KeyTest"   Style="{StaticResource NavButtonStyle}"
+                        Foreground="White" Command="{Binding NavigateCommand}" CommandParameter="KeyTest"/>
                 <Button Content="Status"    Tag="Status"    Style="{StaticResource NavButtonStyle}"
                         Foreground="White" Command="{Binding NavigateCommand}" CommandParameter="Status"/>
             </StackPanel>

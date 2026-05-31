@@ -93,8 +93,5 @@ public sealed class ActionExecutor
     }
 
     private static bool IsReadOnlyComputedSource(ValueSource source) =>
-        source is ValueSource.DD1PosAbs or ValueSource.DD1NegAbs
-               or ValueSource.DD1Pos    or ValueSource.DD1Neg
-               or ValueSource.DD2PosAbs or ValueSource.DD2NegAbs
-               or ValueSource.DD2Pos    or ValueSource.DD2Neg;
+        source is ValueSource.DD2Positive or ValueSource.DD2Negative;
 }

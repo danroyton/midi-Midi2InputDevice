@@ -1,0 +1,115 @@
+<UserControl x:Class="MidiControllerFrontend.Views.KeyTestView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="700">
+
+    <DockPanel Margin="12">
+
+        <!-- Toolbar -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Tastatur-Test" FontSize="16" FontWeight="Bold"
+                       VerticalAlignment="Center" Margin="0,0,16,0"/>
+            <Button Command="{Binding ToggleListenCommand}" Padding="10,4" Margin="0,0,6,0">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Content" Value="▶ Aufzeichnung starten"/>
+                        <Setter Property="Background" Value="#4CAF50"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsListening}" Value="True">
+                                <Setter Property="Content" Value="■ Aufzeichnung stoppen"/>
+                                <Setter Property="Background" Value="#F44336"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Content="Leeren" Command="{Binding ClearCommand}" Padding="10,4"/>
+        </StackPanel>
+
+        <!-- Hinweis-Banner -->
+        <Border DockPanel.Dock="Top" Background="#FFF9C4" BorderBrush="#F9A825"
+                BorderThickness="1" CornerRadius="3" Padding="8,6" Margin="0,0,0,8">
+            <TextBlock TextWrapping="Wrap" Foreground="#5D4037">
+                <Run FontWeight="Bold">Hinweis:</Run>
+                <Run>Klicke in das Eingabefeld unten und drücke dann Tasten. Taste gedrückt halten = mehrfache KeyDown-Einträge (Auto-Repeat). Wenn MIDI eine Taste auslöst, sollte sie hier erscheinen.</Run>
+            </TextBlock>
+        </Border>
+
+        <!-- Fokussierbares Eingabefeld -->
+        <Border DockPanel.Dock="Top" Margin="0,0,0,8"
+                BorderThickness="2" CornerRadius="3"
+                Background="#E3F2FD" Padding="10,8">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="BorderBrush" Value="#90CAF9"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsListening}" Value="True">
+                            <Setter Property="BorderBrush" Value="#4CAF50"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBox x:Name="InputField"
+                     Text="← Hier klicken, dann Tasten drücken"
+                     IsReadOnly="True"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     FontSize="13"
+                     Foreground="#1565C0"
+                     FontStyle="Italic"
+                     TextAlignment="Center"
+                     Focusable="True"/>
+        </Border>
+
+        <!-- Statuszeile -->
+        <TextBlock DockPanel.Dock="Bottom"
+                   Foreground="Gray" FontStyle="Italic" Margin="0,4,0,0">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value="Aufzeichnung gestoppt."/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsListening}" Value="True">
+                            <Setter Property="Text" Value="● Aufzeichnung läuft – Tastendrücke werden erfasst."/>
+                            <Setter Property="Foreground" Value="#4CAF50"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+
+        <!-- Ergebnis-Tabelle -->
+        <DataGrid ItemsSource="{Binding Entries}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  CanUserAddRows="False"
+                  AlternatingRowBackground="#F5F5F5"
+                  GridLinesVisibility="Horizontal"
+                  FontFamily="Consolas"
+                  FontSize="12">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Zeit"       Binding="{Binding Time}"      Width="100"/>
+                <DataGridTextColumn Header="Aktion"     Binding="{Binding Action}"    Width="80">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="KeyDown">
+                                    <Setter Property="Foreground" Value="#1B5E20"/>
+                                </Trigger>
+                                <Trigger Property="Text" Value="KeyUp">
+                                    <Setter Property="Foreground" Value="#B71C1C"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Taste"      Binding="{Binding Key}"       Width="140"/>
+                <DataGridTextColumn Header="Modifier"   Binding="{Binding Modifiers}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+    </DockPanel>
+</UserControl>

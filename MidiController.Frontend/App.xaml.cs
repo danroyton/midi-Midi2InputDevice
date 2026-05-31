@@ -45,8 +45,12 @@ public partial class App : Application
         services.AddSingleton<MidiLogViewModel>(sp =>
             new MidiLogViewModel($"{backend.BaseUrl}/hubs/midilog", sp.GetRequiredService<ApiClient>()));
         services.AddSingleton<DevicesViewModel>();
-        services.AddSingleton<MappingsViewModel>();
+        services.AddSingleton<MappingsViewModel>(sp =>
+            new MappingsViewModel(
+                sp.GetRequiredService<ApiClient>(),
+                new SignalRClientService($"{backend.BaseUrl}/hubs/midilog")));
         services.AddSingleton<TemplatesViewModel>();
+        services.AddSingleton<KeyTestViewModel>();
 
         // Hauptfenster
         services.AddSingleton<MainWindow>();

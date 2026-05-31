@@ -16,7 +16,7 @@ public class TriggerExecutorTests
         new("dev", MidiEventType.ControlChange, 1, 16, data2, 0);
 
     private static ComputedValueContext MakeCtx(int data2 = 64) =>
-        new(MakeEvent(data2), 0, 0);
+        new(MakeEvent(data2), 0);
 
     private (TriggerExecutor executor, VariableStore store, IInputInjector injector)
         BuildExecutor()
@@ -48,6 +48,8 @@ public class TriggerExecutorTests
             EventType:               MidiEventType.ControlChange,
             Channel:                 1,
             Data1Filter:             16,
+            MatchMode:               MidiController.Domain.Enums.TriggerMatchMode.Variable,
+            MatchValue:              0,
             GlobalPreAssignments:    globalPre  ?? [],
             ConditionBlocks:         conditionBlocks,
             Actions:                 actions,

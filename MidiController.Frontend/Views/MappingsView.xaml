@@ -3,31 +3,276 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="700">
+             mc:Ignorable="d" d:DesignHeight="600" d:DesignWidth="900">
 
-    <DockPanel Margin="12">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <!-- Trigger-Liste -->
+            <ColumnDefinition Width="*"/>
+            <!-- Editor-Panel -->
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Titel -->
-        <TextBlock DockPanel.Dock="Top"
-                   Text="Mappings"
-                   FontSize="16" FontWeight="Bold" Margin="0,0,0,8"/>
+        <!-- ── Linke Spalte: Trigger-Liste ────────────────────────── -->
+        <DockPanel Grid.Column="0" Margin="12">
 
-        <!-- Gerätefilter -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="Gerät:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <ComboBox ItemsSource="{Binding ActiveDevices}"
-                      SelectedItem="{Binding SelectedDevice}"
-                      DisplayMemberPath="DeviceId"
-                      MinWidth="220"
-                      VerticalAlignment="Center"/>
-            <Button Content="&#x21BB;"
-                    Command="{Binding LoadActiveDevicesCommand}"
-                    ToolTip="Geräteliste aktualisieren"
-                    Margin="6,0,0,0" Padding="6,2"
-                    VerticalAlignment="Center"/>
-        </StackPanel>
+            <!-- Titel + Aktionsleiste -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <TextBlock Text="Mappings" FontSize="16" FontWeight="Bold"
+                           VerticalAlignment="Center"/>
+                <Button Content="+ Neu"
+                        Command="{Binding NewTriggerCommand}"
+                        HorizontalAlignment="Right"
+                        Padding="10,3"/>
+            </DockPanel>
 
-        <TextBlock Text="{Binding StatusMessage}"
-                   Foreground="Gray" FontStyle="Italic" FontSize="13"/>
-    </DockPanel>
+            <!-- Gerätefilter -->
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="Gerät:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox ItemsSource="{Binding ActiveDevices}"
+                          SelectedItem="{Binding SelectedDevice}"
+                          DisplayMemberPath="DeviceId"
+                          MinWidth="200" VerticalAlignment="Center"/>
+                <Button Content="&#x21BB;"
+                        Command="{Binding LoadActiveDevicesCommand}"
+                        ToolTip="Geräteliste aktualisieren"
+                        Margin="6,0,0,0" Padding="6,2"
+                        VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Statuszeile -->
+            <TextBlock DockPanel.Dock="Bottom"
+                       Text="{Binding StatusMessage}"
+                       Foreground="Gray" FontStyle="Italic" Margin="0,6,0,0"/>
+
+            <!-- Trigger-Liste -->
+            <ListView ItemsSource="{Binding Triggers}"
+                      SelectedItem="{Binding SelectedTrigger}"
+                      BorderThickness="1" BorderBrush="#CCCCCC">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Gerät"     Width="160"
+                                        DisplayMemberBinding="{Binding DeviceId}"/>
+                        <GridViewColumn Header="Typ"       Width="130"
+                                        DisplayMemberBinding="{Binding EventType}"/>
+                        <GridViewColumn Header="Ch"        Width="40"
+                                        DisplayMemberBinding="{Binding Channel}"/>
+                        <GridViewColumn Header="Data1"     Width="55"
+                                        DisplayMemberBinding="{Binding Data1Filter}"/>
+                        <GridViewColumn Header="Match"     Width="120"
+                                        DisplayMemberBinding="{Binding MatchMode}"/>
+                        <GridViewColumn Header="Wert"      Width="50"
+                                        DisplayMemberBinding="{Binding MatchValue}"/>
+                        <GridViewColumn Header="" Width="90">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="✎"
+                                                Command="{Binding DataContext.EditTriggerCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Bearbeiten"
+                                                Padding="5,1" Margin="0,0,4,0"/>
+                                        <Button Content="🗑"
+                                                Command="{Binding DataContext.DeleteTriggerCommand,
+                                                          RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="Löschen"
+                                                Padding="5,1"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </DockPanel>
+
+        <!-- ── Rechte Spalte: Trigger-Editor ──────────────────────── -->
+        <Border Grid.Column="1"
+                Visibility="{Binding IsEditorOpen, Converter={StaticResource BoolToVisibility}}"
+                Width="380"
+                BorderThickness="1,0,0,0" BorderBrush="#AAAAAA"
+                Background="#F8F8F8">
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="14,12">
+
+                    <TextBlock Text="Trigger bearbeiten"
+                               FontSize="14" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                    <!-- Mitschnitt -->
+                    <GroupBox Header="MIDI-Mitschnitt" Margin="0,0,0,10" Padding="8">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="▶ Mitschneiden"
+                                        Command="{Binding StartCaptureCommand}"
+                                        IsEnabled="{Binding IsCapturing, Converter={StaticResource BoolNegate}}"
+                                        Padding="8,3" Margin="0,0,6,0"/>
+                                <Button Content="■ Stop"
+                                        Command="{Binding StopCaptureCommand}"
+                                        IsEnabled="{Binding IsCapturing}"
+                                        Padding="8,3"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding CaptureStatus}"
+                                       Foreground="SteelBlue" FontStyle="Italic"
+                                       Margin="0,6,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <!-- Matching-Parameter -->
+                    <GroupBox Header="Filter" Margin="0,0,0,10" Padding="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Gerät:"
+                                       VerticalAlignment="Center" Margin="0,0,0,6"/>
+                            <ComboBox  Grid.Row="0" Grid.Column="1"
+                                       ItemsSource="{Binding ActiveDevices}"
+                                       SelectedValuePath="DeviceId"
+                                       SelectedValue="{Binding Editor.DeviceId}"
+                                       DisplayMemberPath="DeviceId"
+                                       Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Event-Typ:"
+                                       VerticalAlignment="Center" Margin="0,0,0,6"/>
+                            <ComboBox  Grid.Row="1" Grid.Column="1"
+                                       ItemsSource="{Binding EventTypes}"
+                                       SelectedItem="{Binding Editor.EventType}"
+                                       Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Kanal:"
+                                       VerticalAlignment="Center" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="2" Grid.Column="1"
+                                       Text="{Binding Editor.Channel, UpdateSourceTrigger=PropertyChanged}"
+                                       Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Data1:"
+                                       VerticalAlignment="Center" Margin="0,0,0,6"/>
+                            <TextBox   Grid.Row="3" Grid.Column="1"
+                                       Text="{Binding Editor.Data1Filter, UpdateSourceTrigger=PropertyChanged}"
+                                       Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Match:"
+                                       VerticalAlignment="Center" Margin="0,0,0,6"/>
+                            <ComboBox  Grid.Row="4" Grid.Column="1"
+                                       ItemsSource="{Binding MatchModes}"
+                                       SelectedItem="{Binding Editor.MatchMode}"
+                                       Margin="0,0,0,6"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Wert:"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding Editor.MatchValueVisible,
+                                                    Converter={StaticResource BoolToVisibility}}"/>
+                            <TextBox   Grid.Row="5" Grid.Column="1"
+                                       Text="{Binding Editor.MatchValue, UpdateSourceTrigger=PropertyChanged}"
+                                       Visibility="{Binding Editor.MatchValueVisible,
+                                                    Converter={StaticResource BoolToVisibility}}"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Aktionen -->
+                    <GroupBox Header="Aktionen" Margin="0,0,0,10" Padding="8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Liste der Aktionen -->
+                            <ListBox Grid.Row="0"
+                                     ItemsSource="{Binding Editor.Actions}"
+                                     SelectedItem="{Binding Editor.SelectedAction}"
+                                     MaxHeight="120"
+                                     Margin="0,0,0,6">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Summary}"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!-- Aktions-Buttons -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button Content="+ Aktion"
+                                        Command="{Binding Editor.AddActionCommand}"
+                                        Padding="8,3" Margin="0,0,6,0"/>
+                                <Button Content="🗑 Entfernen"
+                                        Command="{Binding Editor.RemoveActionCommand}"
+                                        CommandParameter="{Binding Editor.SelectedAction}"
+                                        IsEnabled="{Binding Editor.SelectedAction, Converter={StaticResource NotNull}}"
+                                        Padding="8,3"/>
+                            </StackPanel>
+
+                            <!-- Inline-Editor der gewählten Aktion -->
+                            <Border Grid.Row="2"
+                                    Visibility="{Binding Editor.SelectedAction, Converter={StaticResource NotNullToVisibility}}"
+                                    BorderThickness="1" BorderBrush="#CCCCCC"
+                                    Background="#FAFAFA" Padding="8">
+                                <Grid DataContext="{Binding Editor.SelectedAction}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Tasten:"
+                                               VerticalAlignment="Center" Margin="0,0,0,6"
+                                               ToolTip="Komma-getrennte Tastenbezeichnungen, z.B. CTRL,C"/>
+                                    <TextBox   Grid.Row="0" Grid.Column="1"
+                                               Text="{Binding Keys, UpdateSourceTrigger=PropertyChanged}"
+                                               Margin="0,0,0,6"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Wiederh.:"
+                                               VerticalAlignment="Center" Margin="0,0,0,6"/>
+                                    <TextBox   Grid.Row="1" Grid.Column="1"
+                                               Text="{Binding RepeatCount, UpdateSourceTrigger=PropertyChanged}"
+                                               Margin="0,0,0,6"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Dauer (ms):"
+                                               VerticalAlignment="Center" Margin="0,0,0,6"/>
+                                    <TextBox   Grid.Row="2" Grid.Column="1"
+                                               Text="{Binding DurationMs, UpdateSourceTrigger=PropertyChanged}"
+                                               Margin="0,0,0,6"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Pause (ms):"
+                                               VerticalAlignment="Center"/>
+                                    <TextBox   Grid.Row="3" Grid.Column="1"
+                                               Text="{Binding PauseMs, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Footer-Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Abbrechen"
+                                Command="{Binding CancelEditCommand}"
+                                Padding="10,4" Margin="0,0,8,0"/>
+                        <Button Content="Speichern"
+                                Command="{Binding SaveTriggerCommand}"
+                                Padding="10,4"/>
+                    </StackPanel>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
 </UserControl>

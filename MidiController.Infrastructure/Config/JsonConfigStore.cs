@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MidiController.Domain.Interfaces;
 using MidiController.Domain.Models;
 
@@ -19,6 +20,7 @@ public sealed class JsonConfigStore : IConfigStore, ITemplateStore
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() },
     };
 
     public JsonConfigStore(string basePath)
@@ -69,7 +71,7 @@ public sealed class JsonConfigStore : IConfigStore, ITemplateStore
     public Task<IEnumerable<string>> ListTemplateNamesAsync(CancellationToken ct = default)
     {
         var names = Directory.EnumerateFiles(_templatesDir, "*.json")
-            .Select(f => Path.GetFileNameWithoutExtension(f));
+            .Select(f => Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(f)));
         return Task.FromResult(names);
     }
 

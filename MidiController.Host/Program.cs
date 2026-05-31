@@ -2,6 +2,7 @@ using MidiController.Host.Api;
 using MidiController.Host.Extensions;
 using MidiController.Host.Hubs;
 using MidiController.Host.Signalr;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,10 @@ builder.Services
 
 // SignalR
 builder.Services.AddSignalR();
+
+// JSON-Serialisierung: Enums als Strings (für Trigger-CRUD)
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // Broadcaster als Singletons – Konstruktor abonniert Events automatisch
 builder.Services.AddSingleton<StatusBroadcaster>();

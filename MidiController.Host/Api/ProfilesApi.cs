@@ -1,3 +1,4 @@
+using MidiController.Domain.Enums;
 using MidiController.Domain.Interfaces;
 using MidiController.Domain.Models;
 using MidiController.Engine;
@@ -132,6 +133,56 @@ internal static class ProfilesApi
             return Results.NoContent();
         })
         .WithName("DeleteTemplate");
+
+        // ── Trigger ──────────────────────────────────────────────────────────
+
+        api.MapGet("/profiles/{id}/triggers", async (
+            string id, IConfigStore store, CancellationToken ct) =>
+        {
+            var profile = await store.LoadProfileAsync(id, ct);
+            return profile is null ? Results.NotFound() : Results.Ok(profile.Triggers);
+        })
+        .WithName("ListTriggers")
+        .WithSummary("Gibt alle Trigger eines Profils zurück.");
+
+        api.MapPost("/profiles/{id}/triggers", async (
+            string id, Trigger trigger, IConfigStore store, CancellationToken ct) =>
+        {
+            var profile = await store.LoadProfileAsync(id, ct);
+            if (profile is null) return Results.NotFound();
+            var updated = profile with { Triggers = [.. profile.Triggers ?? [], trigger] };
+            await store.SaveProfileAsync(updated, ct);
+            return Results.Created($"/api/profiles/{id}/triggers/{trigger.TriggerId}", trigger);
+        })
+        .WithName("CreateTrigger")
+        .WithSummary("Fügt einen neuen Trigger in ein Profil ein.");
+
+        api.MapPut("/profiles/{id}/triggers/{triggerId}", async (
+            string id, string triggerId, Trigger trigger, IConfigStore store, CancellationToken ct) =>
+        {
+            var profile = await store.LoadProfileAsync(id, ct);
+            if (profile is null) return Results.NotFound();
+            var list = (profile.Triggers ?? []).ToList();
+            var idx  = list.FindIndex(t => t.TriggerId == triggerId);
+            if (idx < 0) return Results.NotFound();
+            list[idx] = trigger with { TriggerId = triggerId };
+            await store.SaveProfileAsync(profile with { Triggers = [.. list] }, ct);
+            return Results.Ok(list[idx]);
+        })
+        .WithName("UpdateTrigger")
+        .WithSummary("Aktualisiert einen Trigger.");
+
+        api.MapDelete("/profiles/{id}/triggers/{triggerId}", async (
+            string id, string triggerId, IConfigStore store, CancellationToken ct) =>
+        {
+            var profile = await store.LoadProfileAsync(id, ct);
+            if (profile is null) return Results.NotFound();
+            var list = (profile.Triggers ?? []).Where(t => t.TriggerId != triggerId).ToArray();
+            await store.SaveProfileAsync(profile with { Triggers = list }, ct);
+            return Results.NoContent();
+        })
+        .WithName("DeleteTrigger")
+        .WithSummary("Löscht einen Trigger aus einem Profil.");
 
         return app;
     }

@@ -1,3 +1,4 @@
+using MidiController.Domain.Enums;
 using MidiController.Domain.Interfaces;
 using MidiController.Domain.Models;
 using MidiController.Engine.Execution;
@@ -44,9 +45,8 @@ public sealed class MappingEngine : IMappingEngine
 
         var ctx = _deltaTracker.ComputeAndUpdate(midiEvent);
 
-        var matchingTriggers = FindMatchingTriggers(_activeProfile.Triggers, midiEvent);
+        var matchingTriggers = FindMatchingTriggers(_activeProfile.Triggers, midiEvent, ctx);
 
-        // Fire-and-forget auf dem aufrufenden Thread (MappingWorker kümmert sich um async)
         foreach (var trigger in matchingTriggers)
             _ = _triggerExecutor.ExecuteAsync(trigger, ctx);
     }
@@ -54,13 +54,31 @@ public sealed class MappingEngine : IMappingEngine
     // ── Hilfsmethoden ────────────────────────────────────────────────────────
 
     private static IEnumerable<Trigger> FindMatchingTriggers(
-        Trigger[]  triggers,
-        MidiEvent  midiEvent) =>
-        triggers.Where(t => TriggerMatchesEvent(t, midiEvent));
+        Trigger[]           triggers,
+        MidiEvent           midiEvent,
+        ComputedValueContext ctx) =>
+        triggers.Where(t => TriggerMatchesEvent(t, midiEvent, ctx));
 
-    private static bool TriggerMatchesEvent(Trigger trigger, MidiEvent midiEvent) =>
-        trigger.DeviceId    == midiEvent.DeviceId &&
-        trigger.EventType   == midiEvent.Type     &&
-        trigger.Channel     == midiEvent.Channel  &&
-        (trigger.Data1Filter is null || trigger.Data1Filter == midiEvent.Data1);
+    private static bool TriggerMatchesEvent(
+        Trigger             trigger,
+        MidiEvent           midiEvent,
+        ComputedValueContext ctx)
+    {
+        // Channel, EventType, Data1 immer exakt vergleichen
+        if (trigger.DeviceId  != midiEvent.DeviceId) return false;
+        if (trigger.EventType != midiEvent.Type)     return false;
+        if (trigger.Channel   != midiEvent.Channel)  return false;
+        if (trigger.Data1Filter is not null && trigger.Data1Filter != midiEvent.Data1) return false;
+
+        // Vierter Parameter: Data2 / Delta / Variable
+        return trigger.MatchMode switch
+        {
+            TriggerMatchMode.Variable    => true,
+            TriggerMatchMode.Data2       => midiEvent.Data2    == trigger.MatchValue,
+            TriggerMatchMode.DeltaData2  => ctx.DeltaData2     == trigger.MatchValue,
+            TriggerMatchMode.DD2Positive => ctx.DD2Positive    == trigger.MatchValue,
+            TriggerMatchMode.DD2Negative => ctx.DD2Negative    == trigger.MatchValue,
+            _                            => false,
+        };
+    }
 }

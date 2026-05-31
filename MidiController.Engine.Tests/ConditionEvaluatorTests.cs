@@ -10,7 +10,7 @@ namespace MidiController.Engine.Tests;
 public class ConditionEvaluatorTests
 {
     private static ComputedValueContext MakeCtx(int data2 = 50) =>
-        new(new MidiEvent("dev", MidiEventType.ControlChange, 1, 0, data2, 0), 0, 0);
+        new(new MidiEvent("dev", MidiEventType.ControlChange, 1, 0, data2, 0), 0);
 
     private static ConditionEvaluator MakeEvaluator(VariableStore? store = null)
     {

@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MidiControllerFrontend.Services;
 
@@ -17,6 +18,55 @@ public sealed record StatusResponse(
 
 public sealed record DeviceInfo(string DeviceId, bool IsConnected);
 
+// ── Trigger DTOs ──────────────────────────────────────────────────────────────
+
+public sealed record TriggerDto(
+    string  TriggerId,
+    string  DeviceId,
+    string  EventType,
+    int     Channel,
+    int?    Data1Filter,
+    string  MatchMode,   // Variable | Data2 | DeltaData2 | DD2Positive | DD2Negative
+    int     MatchValue,
+    StateAssignmentDto[]  GlobalPreAssignments,
+    ConditionBlockDto[]   ConditionBlocks,
+    ActionBlockDto[]      Actions,
+    StateAssignmentDto[]  GlobalPostAssignments,
+    TriggerConfigDto?     ElseConfig
+);
+
+public sealed record TriggerConfigDto(
+    ConditionBlockDto[]  ConditionBlocks,
+    ActionBlockDto[]     Actions,
+    StateAssignmentDto[] GlobalPostAssignments
+);
+
+public sealed record ConditionBlockDto(
+    string?        TemplateName,
+    ConditionDto[] Conditions
+);
+
+public sealed record ConditionDto(
+    string Left,
+    string Op,
+    string RightSource,
+    int    RightFixed
+);
+
+public sealed record ActionBlockDto(
+    string?              TemplateName,
+    string[]             KeyCombination,
+    string               XSource, int XFixed,
+    string               YSource, int YFixed,
+    string               ZSource, int ZFixed,
+    StateAssignmentDto[] StateAssignments
+);
+
+public sealed record StateAssignmentDto(
+    char   Variable,
+    string Source,
+    int    FixedValue
+);
 
 
 // ── ApiClient ─────────────────────────────────────────────────────────────────
@@ -87,6 +137,16 @@ public sealed class ApiClient
         catch { return false; }
     }
 
+    public async Task<bool> DeleteProfileAsync(string id, CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.DeleteAsync($"/api/profiles/{Uri.EscapeDataString(id)}", ct);
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
     // ── Devices ──────────────────────────────────────────────────────────────
 
     public async Task<List<DeviceInfo>> ListDevicesAsync(CancellationToken ct = default)
@@ -128,6 +188,49 @@ public sealed class ApiClient
         try
         {
             var resp = await _http.DeleteAsync($"/api/templates/{Uri.EscapeDataString(name)}", ct);
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    // ── Triggers ─────────────────────────────────────────────────────────────
+
+    public async Task<List<TriggerDto>> ListTriggersAsync(string profileId, CancellationToken ct = default)
+    {
+        try { return await _http.GetFromJsonAsync<List<TriggerDto>>($"/api/profiles/{Uri.EscapeDataString(profileId)}/triggers", _json, ct) ?? []; }
+        catch { return []; }
+    }
+
+    public async Task<TriggerDto?> CreateTriggerAsync(string profileId, TriggerDto trigger, CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.PostAsJsonAsync($"/api/profiles/{Uri.EscapeDataString(profileId)}/triggers", trigger, ct);
+            if (resp.IsSuccessStatusCode)
+                return await resp.Content.ReadFromJsonAsync<TriggerDto>(_json, ct);
+            return null;
+        }
+        catch { return null; }
+    }
+
+    public async Task<bool> UpdateTriggerAsync(string profileId, TriggerDto trigger, CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.PutAsJsonAsync(
+                $"/api/profiles/{Uri.EscapeDataString(profileId)}/triggers/{Uri.EscapeDataString(trigger.TriggerId)}",
+                trigger, ct);
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    public async Task<bool> DeleteTriggerAsync(string profileId, string triggerId, CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.DeleteAsync(
+                $"/api/profiles/{Uri.EscapeDataString(profileId)}/triggers/{Uri.EscapeDataString(triggerId)}", ct);
             return resp.IsSuccessStatusCode;
         }
         catch { return false; }

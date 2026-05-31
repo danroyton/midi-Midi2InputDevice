@@ -2,7 +2,7 @@ namespace MidiController.Domain.Enums;
 
 /// <summary>
 /// Beschreibt, woher ein Wert für X/Y/Z-Zuweisungen, Bedingungen oder StateAssignments stammt.
-/// DD*-Werte sind berechnete Lesewerte und dürfen nicht als Ziel einer StateAssignment genutzt werden.
+/// DD2-Werte sind berechnete Lesewerte und dürfen nicht als Ziel einer StateAssignment genutzt werden.
 /// </summary>
 public enum ValueSource
 {
@@ -13,21 +13,13 @@ public enum ValueSource
     MidiData1,
     MidiData2,
 
-    // Delta-Werte (V / W): Differenz zum vorherigen Event desselben Typs/Kanals
-    DeltaData1,
+    // DeltaData2: Differenz von Data2 zum vorherigen Event unter (Type, Channel, Data1)
+    // Erster Treffer: Delta = 0 (Annahme: vorheriger Wert == aktueller Wert)
     DeltaData2,
 
-    // Berechnete Ableitungen von DeltaData1 (schreibgeschützt)
-    DD1PosAbs,   // |ΔData1| wenn Δ > 0, sonst 0
-    DD1NegAbs,   // |ΔData1| wenn Δ < 0, sonst 0
-    DD1Pos,      // 1 wenn ΔData1 > 0, sonst 0
-    DD1Neg,      // 1 wenn ΔData1 < 0, sonst 0
-
     // Berechnete Ableitungen von DeltaData2 (schreibgeschützt)
-    DD2PosAbs,   // |ΔData2| wenn Δ > 0, sonst 0
-    DD2NegAbs,   // |ΔData2| wenn Δ < 0, sonst 0
-    DD2Pos,      // 1 wenn ΔData2 > 0, sonst 0
-    DD2Neg,      // 1 wenn ΔData2 < 0, sonst 0
+    DD2Positive,  // |ΔData2| wenn Δ > 0, sonst 0
+    DD2Negative,  // |ΔData2| wenn Δ < 0, sonst 0
 
     // Persistente Zustandsvariablen A–Z
     VariableA,

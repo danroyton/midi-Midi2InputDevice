@@ -31,18 +31,9 @@ public sealed class ValueResolver
             ValueSource.MidiData1   => ctx.Event.Data1,
             ValueSource.MidiData2   => ctx.Event.Data2,
 
-            ValueSource.DeltaData1  => ctx.DeltaData1,
             ValueSource.DeltaData2  => ctx.DeltaData2,
-
-            ValueSource.DD1PosAbs   => ctx.DD1PosAbs,
-            ValueSource.DD1NegAbs   => ctx.DD1NegAbs,
-            ValueSource.DD1Pos      => ctx.DD1Pos,
-            ValueSource.DD1Neg      => ctx.DD1Neg,
-
-            ValueSource.DD2PosAbs   => ctx.DD2PosAbs,
-            ValueSource.DD2NegAbs   => ctx.DD2NegAbs,
-            ValueSource.DD2Pos      => ctx.DD2Pos,
-            ValueSource.DD2Neg      => ctx.DD2Neg,
+            ValueSource.DD2Positive => ctx.DD2Positive,
+            ValueSource.DD2Negative => ctx.DD2Negative,
 
             >= ValueSource.VariableA and <= ValueSource.VariableZ
                 => _variables.Get(VariableCharOf(source)),

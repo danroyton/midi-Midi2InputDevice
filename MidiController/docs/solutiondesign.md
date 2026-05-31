@@ -9,7 +9,7 @@ Der MidiController empfängt MIDI-Events von physikalischen Geräten, wertet Map
 ## Projektstruktur
 
 ```
-MidiController.sln
+Midi2InputDevice.slnx
 │
 ├── MidiController/                         ← Dokumentations-Projekt (nur docs/)
 │   └── docs/
@@ -21,10 +21,10 @@ MidiController.sln
 │
 ├── MidiController.Domain/                  ← Class Library (.NET 10)
 ├── MidiController.Engine/                  ← Class Library (.NET 10)
-├── Midicontroller.Infrastructure/          ← Class Library (.NET 10, Windows)
+├── MidiController.Infrastructure/          ← Class Library (.NET 10, Windows)
 ├── MidiController.Host/                    ← ASP.NET Core Worker Service (.NET 10)
 │
-├── MidiControllerFrontend/                 ← WPF-Frontend (.NET 10)
+├── MidiController.Frontend/                ← WPF-Frontend (.NET 10)
 │
 ├── MidiController.Engine.Tests/            ← xUnit (.NET 10)
 └── MidiController.Infrastructure.Tests/    ← xUnit (.NET 10)
@@ -88,20 +88,20 @@ MidiController.Engine/
 
 ---
 
-## Projekt 3 – `Midicontroller.Infrastructure`
+## Projekt 3 – `MidiController.Infrastructure`
 
 **Zweck:** Windows-spezifische Implementierungen der Domain-Interfaces.
 
 ```
-Midicontroller.Infrastructure/
+MidiController.Infrastructure/
 ├── Midi/
 │   ├── MidiInputService.cs       // BackgroundService, NAudio MidiIn, Reconnect-Logik
 │   └── VirtualMidiPortService.cs // loopMIDI COM / Windows MIDI Services API
 ├── Input/
-│   └── Win32InputInjector.cs     // IInputInjector via P/Invoke SendInput
-├── Persistence/
-│   ├── JsonConfigStore.cs        // IConfigStore: Profile als JSON lesen/schreiben
-│   └── JsonTemplateStore.cs      // ITemplateStore: Templates als JSON lesen/schreiben
+│   ├── VirtualKeyMapper.cs       // Tasten-Namen → Windows VK-Codes
+│   └── WindowsInputInjector.cs   // IInputInjector via P/Invoke SendInput
+├── Config/
+│   └── JsonConfigStore.cs        // IConfigStore + ITemplateStore: JSON lesen/schreiben
 └── Interop/
 	└── NativeMethods.cs          // P/Invoke: SendInput, INPUT, KEYBDINPUT structs
 ```
@@ -132,7 +132,7 @@ MidiController.Host/
 	└── ServiceCollectionExtensions.cs    // AddMidiEngine(), AddMidiInfrastructure()
 ```
 
-**Abhängigkeiten:** `MidiController.Domain`, `MidiController.Engine`, `Midicontroller.Infrastructure`
+**Abhängigkeiten:** `MidiController.Domain`, `MidiController.Engine`, `MidiController.Infrastructure`
 
 ---
 
@@ -140,13 +140,13 @@ MidiController.Host/
 
 ```
 MidiController.Domain   ◄──  MidiController.Engine
-						◄──  Midicontroller.Infrastructure
-						◄──  MidiController.Host
+					◄──  MidiController.Infrastructure
+					◄──  MidiController.Host
 MidiController.Engine   ◄──  MidiController.Host
-Midicontroller.Infrastructure ◄── MidiController.Host
+MidiController.Infrastructure ◄── MidiController.Host
 
 MidiController.Engine        ◄── MidiController.Engine.Tests
-Midicontroller.Infrastructure ◄── MidiController.Infrastructure.Tests
+MidiController.Infrastructure ◄── MidiController.Infrastructure.Tests
 ```
 
 ---

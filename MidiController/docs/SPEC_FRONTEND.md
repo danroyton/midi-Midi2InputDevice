@@ -119,8 +119,13 @@ Das Frontend ist eine **WPF-Applikation (.NET 10)**, die ausschließlich zur Kon
 
 ```
 ┌─ Trigger bearbeiten ────────────────────────────────────┐
+│ [▶ Mitschneiden]  [■ Stop]  (letztes Event vorausfüllen) │
+│                                                         │
 │ Gerät:      [KORG nanoKONTROL2 ▼]                       │
 │ Event-Typ:  [ControlChange ▼]   Kanal: [1]  Data1: [16] │
+│ Match:      [Variable ▼]  Wert: [0]                     │
+│   (Variable = bei jedem Data2 auslösen; sonst            │
+│    Data2 | DeltaData2 | DD2Positive | DD2Negative)      │
 │                                                         │
 │ ── Schritt 0: Globale Pre-Zuweisungen ───────────────── │
 │ [+ Zuweisung]                                           │
@@ -139,14 +144,14 @@ Das Frontend ist eine **WPF-Applikation (.NET 10)**, die ausschließlich zur Kon
 │                                                         │
 │ Aktion 1  Template:[-- inline --▼]  [↑][↓][✕]          │
 │   Tasten: [VolumeUp]  [+ Taste]                         │
-│   X (Repeat):      ● DD1PosAbs  ○ DD1NegAbs  ○ Fest[_] │
+│   X (Repeat):      ● DD2Positive  ○ DD2Negative  ○ Fest[_] │
 │   Y (KeyDuration): ● Fest [0]                           │
 │   Z (Pause):       ● Fest [0]                           │
 │   State-Zuweisungen: [+ Hinzufügen]                     │
 │                                                         │
 │ Aktion 2  Template:[-- inline --▼]  [↑][↓][✕]          │
 │   Tasten: [VolumeDown]  [+ Taste]                       │
-│   X (Repeat):      ● DD1NegAbs  ○ DD1PosAbs  ○ Fest[_] │
+│   X (Repeat):      ● DD2Negative  ○ DD2Positive  ○ Fest[_] │
 │   Y (KeyDuration): ● Fest [0]                           │
 │   Z (Pause):       ● Fest [0]                           │
 │   State-Zuweisungen: [+ Hinzufügen]                     │
@@ -163,21 +168,24 @@ Das Frontend ist eine **WPF-Applikation (.NET 10)**, die ausschließlich zur Kon
 
 | Bereich | Feld | Typ | Beschreibung |
 |---|---|---|---|
+| Header | Mitschneiden | Button | Startet MIDI-Mitschnitt; bei Klick auf eine Zeile werden Gerät/Typ/Kanal/Data1 vorausgefüllt |
 | Header | Gerät / Event-Typ / Kanal / Data1 | Dropdowns / Spinner | Filter für MIDI-Event-Matching |
+| Header | Match (Feld 4) | Dropdown | `Variable` \| `Data2` \| `DeltaData2` \| `DD2Positive` \| `DD2Negative` |
+| Header | Wert | Spinner | Zielwert für Match (ausgeblendet bei `Variable`) |
 | Schritt 0 | Globale Pre-Zuweisungen | Liste | Variablen setzen **vor** Prüfblöcken |
 | Prüfblöcke | Block-Liste | Dynamisch | 1..n; Reihenfolge per Drag & Drop |
-| Prüfblock | Bedingungen | Liste | Links / Op / Rechts; Quellen: alle Variablen A–Z, MidiData1/2, DeltaData1/2, DD1/2PosAbs, DD1/2NegAbs, DD1/2Pos, DD1/2Neg, Fixed |
+| Prüfblock | Bedingungen | Liste | Links / Op / Rechts; Quellen: alle Variablen A–Z, MidiData1/2, DeltaData2, DD2Positive, DD2Negative, Fixed |
 | Prüfblock | ELSE-Config | Ausklappbereich | Eigene Prüfblöcke + Aktionen bei Fehlschlag |
 | Aktionen | Aktions-Liste | Dynamisch | 1..n; Reihenfolge per ↑/↓ |
 | Aktion | Template | Dropdown | ActionBlock-Template oder inline |
 | Aktion | Tasten | Tag-Editor | Modifier + Tasten; leer = nur State-Änderung |
-| Aktion | X (`Repeat`) | Radio + Spinner | MidiData1/2, DeltaData1/2, DD1/2PosAbs, DD1/2NegAbs, DD1/2Pos, DD1/2Neg, Var A–Z, Fixed |
+| Aktion | X (`Repeat`) | Radio + Spinner | MidiData1/2, DeltaData2, DD2Positive, DD2Negative, Var A–Z, Fixed |
 | Aktion | Y (`KeyDuration`) | Radio + Spinner | Wie X |
 | Aktion | Z (`Pause`) | Radio + Spinner | Wie X |
 | Aktion | State-Zuweisungen | Liste | Variable ← Quelle (nach dem Tastendruck dieser Aktion) |
 | Footer | Globale Post-Zuweisungen | Liste | Einmalig nach allen Aktionen ausgeführt |
 
-> Reservierte Variablen erscheinen mit Alias: `A (ActiveListen)`, `V (DeltaData1)`, `W (DeltaData2)`, `X (Repeat)`, `Y (KeyDuration)`, `Z (Pause)`. Berechnete `DD*`-Werte sind nur als Quelle (lesend) wählbar, nicht als Ziel.
+> Reservierte Variablen erscheinen mit Alias: `A (ActiveListen)`, `X (Repeat)`, `Y (KeyDuration)`, `Z (Pause)`. Berechnete `DD2*`-Werte sind nur als Quelle (lesend) wählbar, nicht als Ziel.
 
 ---
 
@@ -222,13 +230,11 @@ Das Frontend ist eine **WPF-Applikation (.NET 10)**, die ausschließlich zur Kon
 │  A=2 (ActiveListen)                                     │
 │  B=0   C=0   D=0   E=0   F=0   G=0   H=0   I=0         │
 │  J=0   K=0   L=0   M=0   N=0   O=0   P=0   Q=0         │
-│  R=0   S=0   T=0   U=0                                  │
-│  V=0 (DeltaData1)   W=0 (DeltaData2)                    │
+│  R=0   S=0   T=0   U=0   V=0   W=0                     │
 │  X=1 (Repeat)  Y=0 (KeyDuration)  Z=0 (Pause)          │
 │                                                         │
 │ Berechnete Lesewerte (letztes Event):                   │
-│  DD1PosAbs=0  DD1NegAbs=0  DD1Pos=0  DD1Neg=0           │
-│  DD2PosAbs=0  DD2NegAbs=0  DD2Pos=0  DD2Neg=0           │
+│  DeltaData2=0  DD2Positive=0  DD2Negative=0             │
 └─────────────────────────────────────────────────────────┘
 ```
 
