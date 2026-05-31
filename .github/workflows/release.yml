@@ -28,9 +28,22 @@ jobs:
         run: dotnet test Midi2InputDevice.slnx -c Release --no-build --verbosity normal
 
       - name: Single-File Publish
+        run: >
+          dotnet publish MidiController.Frontend/MidiController.Frontend.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -o MidiController.Frontend/bin/Release/publish
+
+      - name: Konfig-Dateien in Publish-Ordner kopieren
+        shell: pwsh
         run: |
-          dotnet publish MidiController.Frontend/MidiController.Frontend.csproj `
-            /p:PublishProfile=SingleFile -c Release
+          $pubDir = "MidiController.Frontend/bin/Release/publish"
+          Copy-Item "MidiController.Frontend/appsettings.json"         "$pubDir/" -Force
+          Copy-Item "MidiController.Frontend/appsettings.backend.json" "$pubDir/" -Force
 
       - name: Release-ZIP erstellen
         shell: pwsh
@@ -52,3 +65,10 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+git add .github/workflows/release.yml
+git commit -m "ci: Publish inline statt pubxml, fester Output-Pfad"
+git push origin main
+
+# Neuen Tag für den nächsten Release-Versuch setzen
+git tag v0.3.2 -m "Fix CI publish"
+git push origin v0.3.2
