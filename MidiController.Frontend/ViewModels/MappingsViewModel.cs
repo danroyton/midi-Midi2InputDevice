@@ -22,10 +22,10 @@ public sealed partial class ActionEditModel : ObservableObject
     public string Summary =>
         $"{(string.IsNullOrWhiteSpace(Keys) ? "(keine Taste)" : Keys)}  ×{RepeatCount}  {DurationMs}ms/{PauseMs}ms";
 
-    partial void OnKeysChanged(string v)        => OnPropertyChanged(nameof(Summary));
-    partial void OnRepeatCountChanged(int v)    => OnPropertyChanged(nameof(Summary));
-    partial void OnDurationMsChanged(int v)     => OnPropertyChanged(nameof(Summary));
-    partial void OnPauseMsChanged(int v)        => OnPropertyChanged(nameof(Summary));
+    partial void OnKeysChanged(string value)        => OnPropertyChanged(nameof(Summary));
+    partial void OnRepeatCountChanged(int value)    => OnPropertyChanged(nameof(Summary));
+    partial void OnDurationMsChanged(int value)     => OnPropertyChanged(nameof(Summary));
+    partial void OnPauseMsChanged(int value)        => OnPropertyChanged(nameof(Summary));
 
     public ActionBlockDto ToDto() => new(
         TemplateName:     null,
