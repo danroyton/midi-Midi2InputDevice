@@ -65,10 +65,3 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-git add .github/workflows/release.yml
-git commit -m "ci: Publish inline statt pubxml, fester Output-Pfad"
-git push origin main
-
-# Neuen Tag für den nächsten Release-Versuch setzen
-git tag v0.3.2 -m "Fix CI publish"
-git push origin v0.3.2
