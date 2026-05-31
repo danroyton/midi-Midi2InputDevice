@@ -11,12 +11,18 @@ public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
 
+    private BackendHostService? _backendHost;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
         // App läuft weiter, wenn das Hauptfenster geschlossen wird (→ Tray)
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        // Backend in-process starten (blockiert kurz bis Kestrel bereit)
+        _backendHost = new BackendHostService();
+        _backendHost.StartAsync().GetAwaiter().GetResult();
 
         var config = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
@@ -34,8 +40,13 @@ public partial class App : Application
             Services.GetRequiredService<MainViewModel>(),
             mainWindow);
 
-        // Beim App-Shutdown TrayService aufräumen
-        Exit += (_, _) => trayService.Dispose();
+        // Beim App-Shutdown Backend und TrayService aufräumen
+        Exit += async (_, _) =>
+        {
+            trayService.Dispose();
+            if (_backendHost is not null)
+                await _backendHost.DisposeAsync();
+        };
 
         mainWindow.Show();
     }

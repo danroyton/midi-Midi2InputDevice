@@ -2,7 +2,9 @@
 
 ## 1. Überblick
 
-Das Frontend ist eine **WPF-Applikation (.NET 10)**, die ausschließlich zur Konfiguration dient. Es kommuniziert mit dem Backend über **REST** und empfängt Echtzeit-Events über **SignalR WebSockets**. Die Applikation speichert keine eigene Konfiguration – alle Daten werden über die Backend-API geladen und gespeichert.
+Das Frontend ist eine **WPF-Applikation (.NET 10)**, die gleichzeitig das Backend in-process hostet (Single-EXE-Modell). Es kommuniziert mit dem Backend über **REST** (localhost:5000) und empfängt Echtzeit-Events über **SignalR WebSockets**. Die Applikation speichert keine eigene Konfiguration – alle Daten werden über die Backend-API geladen und gespeichert.
+
+> **Single-EXE:** Der Backend-Kestrel-Host wird beim Start via `BackendHostService` automatisch in-process gestartet. Es ist kein separater Backend-Prozess nötig.
 
 ---
 
@@ -246,6 +248,60 @@ Das Frontend ist eine **WPF-Applikation (.NET 10)**, die ausschließlich zur Kon
 - Berechnete `DD*`-Werte sind read-only und werden nach jedem MIDI-Event aktualisiert.
 - Alle Variablen werden über SignalR (`/hubs/status`, `VariableChanged`) live aktualisiert.
 - Latenz-Wert kommt von `GET /api/v1/status`.
+
+---
+
+## 2.8 View: Keyboard-Test
+
+**Zweck:** Tastatur-Eingaben live testen ohne MIDI-Hardware.
+
+```
+┌─ Keyboard-Test ─────────────────────────────────────────┐
+│  [Strg] [Alt] [Shift] [Win]  +  [Taste eingeben______]  │
+│                                                         │
+│  [▶ Senden]   Y (Dauer ms): [__0]   Z (Pause ms): [__0] │
+│                                                         │
+│  Letzte Aktion:                                         │
+│  → Ctrl+Alt+T gesendet (12:04:55.321)                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+- Modifier-Checkboxen (Strg, Alt, Shift, Win) + Freitexteingabe für die Haupttaste (VK-Name oder Zeichen)
+- `Y` = KeyDuration, `Z` = Pause (ms)
+- Direkter Aufruf von `POST /api/v1/input/test`
+
+---
+
+## 2.9 Tray-Icon (System Notification Area)
+
+Das **System-Tray-Icon** bleibt aktiv, solange die Anwendung läuft. Das Hauptfenster kann minimiert werden – die App läuft dann unsichtbar im Hintergrund weiter.
+
+**Farbkodierung:**
+
+| Farbe | Bedeutung |
+|---|---|
+| 🟢 Grün | Backend verbunden, Profil aktiv (A=0) |
+| 🟡 Gelb | Backend verbunden, Verarbeitung pausiert (A=1) |
+| 🟠 Orange | Backend verbunden, Gate gesperrt (A=2) |
+| 🔴 Rot | Backend nicht erreichbar |
+
+**Blinken:** Das Icon blinkt kurz (200 ms) bei **tatsächlicher MIDI-Aktivität** (empfangenem Event). Es blinkt nicht bei reinem Polling oder Idle.
+
+**Kontextmenü:**
+```
+┌─ MidiController ────────────────────────────────────────┐
+│  ✔ Aktivieren (A=0)                                     │
+│  ✔ Pause (A=1)                                          │
+│  ✔ Sperren (A=2)                                        │
+│  ─────────────────────────────────────────────────────  │
+│  Fenster anzeigen                                       │
+│  Beenden                                                │
+└─────────────────────────────────────────────────────────┘
+```
+
+- **Aktivieren/Pause/Sperren** rufen `PUT /api/v1/status/variables/A` auf.
+- **Beenden** stoppt den Backend-Host und schließt die Anwendung.
+- Doppelklick auf das Tray-Icon öffnet das Hauptfenster (falls minimiert).
 
 ---
 

@@ -1,11 +1,30 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-MidiController.Host-27dceacf-f8ba-4561-8b86-c1519ccd4545</UserSecretsId>
+    <!-- Als Library bauen – Program.cs wird ignoriert, da kein Executable Entry Point -->
+    <OutputType>Library</OutputType>
   </PropertyGroup>
+
+  <!-- ASP.NET Core + Kestrel über FrameworkReference (statt SDK.Web) -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <!-- Implicit usings die beim SDK.Web automatisch vorhanden waren -->
+  <ItemGroup>
+    <Using Include="Microsoft.AspNetCore.Builder" />
+    <Using Include="Microsoft.AspNetCore.Hosting" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.AspNetCore.Routing" />
+    <Using Include="Microsoft.Extensions.Configuration" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Microsoft.Extensions.Hosting" />
+    <Using Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MidiController.Domain\MidiController.Domain.csproj" />

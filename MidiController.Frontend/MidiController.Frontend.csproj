@@ -7,7 +7,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- Wird für den eingebetteten ASP.NET Core Host benötigt -->
+    <FrameworkReference Condition="false">Microsoft.AspNetCore.App</FrameworkReference>
   </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
@@ -19,8 +25,17 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
   </ItemGroup>
 
+  <!-- Referenz auf den Backend-Host: alle Routen, Services und Hubs -->
+  <ItemGroup>
+    <ProjectReference Include="..\MidiController.Host\MidiController.Host.csproj" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Backend-Konfiguration ebenfalls kopieren -->
+    <None Update="appsettings.backend.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

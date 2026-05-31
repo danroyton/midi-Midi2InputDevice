@@ -1,346 +1,208 @@
-# Midi2InputDevice
+# MidiController – Midi2InputDevice
 
-## Ziel des Projekts
+Verbindet physikalische MIDI-Geräte (Keyboards, Drumcomputer, Encoder-Controller, …) mit Windows und wandelt MIDI-Events in beliebige Tastatur-Eingaben um – ohne Treiber oder Drittanbieter-Middleware.
 
-MidiController verbindet physikalische MIDI-Geräte (Keyboards, Drumcomputer, Encoder-Controller, …) mit dem Windows-Betriebssystem und ermöglicht es, MIDI-Events in beliebige Tastatur- oder Maus-Eingaben umzusetzen – ohne manuelle Treiber oder Drittanbieter-Middleware. Damit lassen sich z. B. Lautstärke, Mediensteuerung, Makros oder Spielsteuerung über MIDI-Hardware steuern.
-
-Das Projekt besteht aus einem **Backend-Dienst** (ASP.NET Core, .NET 10) und einer **WPF-Konfigurations-App** (.NET 10, Windows).
+> **Aktuelle Version: v0.3**  
+> Single-EXE für Windows x64 – kein Installer, keine .NET-Laufzeit erforderlich.
 
 ---
 
-## Komponenten
+## Inhaltsverzeichnis
 
-| Komponente | Beschreibung |
-|---|---|
-| **MidiController.Domain** | Domänenmodelle (`MidiEvent`, `Trigger`, `Profile`, Variablen A–Z, Enums) |
-| **MidiController.Engine** | Mapping-Engine, Trigger-Auswertung, Gate-Logik, Delta-Tracking, Variable Store |
-| **MidiController.Infrastructure** | MIDI-Eingangsservice (NAudio), Windows-Eingabe-Injektion (`SendInput`), Konfigurations-Store (JSON) |
-| **MidiController.Host** | ASP.NET Core Host, REST-API, SignalR-Hubs, Startup-Verdrahtung |
-| **MidiController.Frontend** | WPF-App (.NET 10-windows): Status, MIDI-Log, Mappings, Templates, Devices |
+- [Features](#features)
+- [Schnellstart](#schnellstart)
+- [Architektur](#architektur)
+- [Konfiguration](#konfiguration)
+- [Entwicklung](#entwicklung)
+- [Release erstellen](#release-erstellen)
+- [Roadmap](#roadmap)
+- [Einschränkungen](#einschränkungen)
 
 ---
 
 ## Features
 
 ### MIDI-Verarbeitung
-- Empfang von MIDI-Events von allen angeschlossenen physikalischen Geräten (NAudio `MidiIn`)
-- Unterstützte Event-Typen: `NoteOn`, `NoteOff`, `ControlChange`, `ProgramChange` u. a.
-- Hochpriorität-Verarbeitung via `System.Threading.Channels` (kein Locking im Hot-Path)
+- Empfang von allen angeschlossenen physikalischen MIDI-Geräten (NAudio `MidiIn`)
+- Automatischer Reconnect bei Gerätewechsel
+- Unterstützte Event-Typen: `NoteOn`, `NoteOff`, `ControlChange`, `ProgramChange`, `PitchBend`
+- Lock-freie Verarbeitung via `System.Threading.Channels`
 
 ### Mapping-Engine
-- Flexible Trigger-Konfiguration: Gerät + Event-Typ + Kanal + Data1-Filter
-- **Zustandsvariablen A–Z** (Wertebereich −127…+127) für komplexe Steuerlogik
-- **Delta-Tracking**: `V` (DeltaData1) und `W` (DeltaData2) halten die Differenz zum vorherigen Event
-- **Berechnete Lesewerte**: `DD1PosAbs`, `DD1NegAbs`, `DD2PosAbs`, `DD2NegAbs`, `DD1Pos`, `DD1Neg`, `DD2Pos`, `DD2Neg`
-- **Prüfblöcke** (UND-verknüpft zwischen Blöcken, ODER innerhalb eines Blocks)
-- **Mehrere sequenzielle Aktionen** pro Trigger, je mit eigenem Tastendruck, X/Y/Z-Quellen und State-Zuweisungen
-- **Globale Pre-/Post-Zuweisungen** für Sperr- und Signalisierungsmuster
+- Trigger konfigurierbar nach: Gerät, Event-Typ, Kanal, Data1-Filter
+- **Zustandsvariablen A–Z** (−127…+127) für komplexe Steuerlogik
+- **Delta-Tracking**: `V`/`W` halten die Differenz zum vorherigen Event
+- **Prüfblöcke**: UND zwischen Blöcken, ODER innerhalb eines Blocks
+- **Globale Pre/Post-Phase**: Variablen setzen und MIDI-Befehle senden vor/nach Aktionen
 - **ELSE-Zweige** bei fehlgeschlagenen Prüfblöcken
-- **Aktivierungs-Gate** (Variable `A`): `0` = aktiv, `1` = pausiert, `2` = gesperrt (Default)
+- **Aktivierungs-Gate** (Variable `A`): `0`=aktiv, `1`=pausiert, `2`=gesperrt
+
+### MIDI-Ausgabe
+- MIDI-Befehle an physikalische MIDI-Output-Geräte senden (als Pre/Post-Schritte in Triggern)
+- Unterstützte Typen: `NoteOn`, `NoteOff`, `ControlChange`, `ProgramChange`, `PitchBend`
 
 ### Eingabe-Injektion
-- Win32 `SendInput` (P/Invoke): Einzel-Tasten, Kombinationen, Key-Down+Hold+Up
+- Win32 `SendInput` (P/Invoke): Einzel-Tasten und Kombinationen
 - `X` = Wiederholungen, `Y` = Hold-Dauer (ms), `Z` = Pause nach Tastendruck (ms)
+- Strukturierter Tastenkombo-Editor: bis zu 2 Modifier + 1 Haupttaste
 
 ### Konfiguration & Templates
-- Profile gespeichert als JSON unter `%ProgramData%\MidiController\profiles\`
-- Wiederverwendbare **ConditionBlock**- und **ActionBlock-Templates**
-- Live-Aktivierung eines Profils ohne Neustart
-
-### API & Echtzeit-Streaming
-- REST-API: Profile, Trigger, Devices, Status, Variablen
-- **SignalR-Hubs**: `/hubs/status` (Variablen-Livestream) und `/hubs/midilog` (MIDI-Rohdaten)
+- Profile gespeichert als JSON unter `%APPDATA%\MidiController\`
+- Wiederverwendbare Condition- und Action-Templates
+- Trigger mit eigenem Anzeigenamen
+- Live-Aktivierung ohne Neustart
 
 ### Frontend (WPF)
-- **Status-View**: Gate-Steuerung (Aktivieren / Pause / Sperren), Echtzeit-Variablen-Tabelle (A–Z)
-- **MIDI-Log-View**: Live-Stream aller MIDI-Events, Gerätefilter-ComboBox (nur verbundene Geräte), bis zu 1.000 Zeilen
-- **Devices-View**: Physikalische MIDI-Geräte auflisten, verbinden und trennen
-- **Mappings-View**: Trigger-Übersicht mit Gerätefilter-ComboBox (Editor in Entwicklung)
-- **Templates-View**: Templates auflisten und löschen
-- Profil-Dropdown + Aktivieren-Button in der Top-Bar
-- Farbiger Verbindungsindikator (Grün/Gelb/Orange/Rot)
+- **Status-View**: Gate-Steuerung, Echtzeit-Variablen-Tabelle (A–Z)
+- **MIDI-Log-View**: Live-Stream aller MIDI-Events, Gerätefilter
+- **Devices-View**: Physikalische MIDI-Geräte verbinden/trennen
+- **Mappings-View**: Vollständiger Trigger-Editor (Pre/Post, Bedingungen, Aktionen, ELSE)
+- **Templates-View**: Templates verwalten
+- **Keyboard-Test-View**: Tastatureingaben live testen
+- **System-Tray-Icon**: Blinkt bei MIDI-Aktivität, farbkodiert nach Gate-Status
+- Einzel-EXE: Backend (Kestrel) läuft in-process im Frontend-Prozess
 
 ---
 
-## Einschränkungen (aktuell)
+## Schnellstart
 
-| Einschränkung | Details |
-|---|---|
-| **Windows only** | `SendInput` und NAudio `MidiIn` sind Windows-spezifisch; kein Linux/macOS-Support |
-| **Keine virtuellen MIDI-Ports** | `VirtualMidiPortService` ist noch nicht implementiert (loopMIDI-Integration ausstehend) |
-| **Kein Trigger-Editor im Frontend** | Die Mappings-View zeigt nur eine Statusmeldung; der vollständige Trigger-Editor ist noch nicht gebaut |
-| **Kein Tray-Icon** | Die App läuft als normales Fenster; kein Systray-Icon vorhanden |
-| **SendInput und Dienst-Session** | Als Windows-Dienst (Session 0) funktioniert `SendInput` nicht ohne zusätzliche Session-Weiterleitung |
-| **Keine Authentifizierung** | Die REST-API ist ohne Auth erreichbar; nur für lokalen Betrieb gedacht |
-| **Kein Hot-Reload der Konfiguration** | Profiländerungen im Dateisystem erfordern eine neue Aktivierung über die API |
+### Option A – Fertige EXE (empfohlen)
 
----
+1. [Neuesten Release](https://github.com/danroyton/midi-Midi2InputDevice/releases/latest) herunterladen
+2. ZIP entpacken
+3. `MidiController.Frontend.exe` starten
+4. Im **Status**-Tab auf **Aktivieren** klicken
+5. Im **Devices**-Tab MIDI-Gerät öffnen
+6. Im **Mappings**-Tab Profil anlegen und Trigger konfigurieren
 
-## Voraussetzungen
+Kein Installer, keine .NET-Runtime notwendig.
 
-### Laufzeit
-- **Windows 10 / 11** (64-Bit)
-- **.NET 10 Runtime** ([Download](https://dotnet.microsoft.com/download/dotnet/10.0))
-- Mindestens ein physikalisches MIDI-Gerät (USB oder DIN, über Treiber eingebunden)
-
-### Entwicklung
-- **Visual Studio 2022 / 2026** (Community oder höher) mit Workloads:
-  - `.NET Desktop Development` (für WPF-Frontend)
-  - `ASP.NET and Web Development` (für Host)
-- **.NET 10 SDK**
-- **Git**
-
----
-
-## Installation & Start
-
-### 1. Repository klonen
+### Option B – Aus Quellcode
 
 ```bash
 git clone https://github.com/danroyton/midi-Midi2InputDevice.git
-cd midi-Midi2InputDevice
+cd Midi2InputDevice
+dotnet run --project MidiController.Frontend
 ```
 
-### 2. Solution bauen
+---
+
+## Architektur
+
+Backend (Kestrel) und Frontend (WPF) laufen **im gleichen Prozess**:
+
+```
+MidiController.Frontend.exe
+├─ WPF-UI  ──────────────────────────────────── Benutzeroberfläche
+└─ BackendHostService (Kestrel :5000)
+   ├─ REST-API  /api/...
+   ├─ SignalR   /hubs/status
+   └─ SignalR   /hubs/midilog
+        │
+        ├─ MidiInputService  (NAudio, physikalische Geräte)
+        ├─ MidiOutputService (NAudio, MIDI-Ausgabe)
+        ├─ MappingEngine     (Trigger-Auswertung)
+        └─ JsonConfigStore   (%APPDATA%\MidiController\)
+```
+
+Projektstruktur:
+
+| Projekt | Beschreibung |
+|---|---|
+| `MidiController.Domain` | Domänenmodelle, Interfaces, Enums |
+| `MidiController.Engine` | Mapping-Engine, Trigger-Executor, Gate, Delta-Tracking |
+| `MidiController.Infrastructure` | MIDI-Input/Output (NAudio), SendInput (Win32), JSON-Config |
+| `MidiController.Host` | ASP.NET Core, REST-API, SignalR-Hubs, `BackendStartup` |
+| `MidiController.Frontend` | WPF-App, integriert den Backend-Host in-process |
+
+---
+
+## Konfiguration
+
+### appsettings.json (Frontend)
+```json
+{
+  "Backend": {
+    "BaseUrl": "http://localhost:5000"
+  }
+}
+```
+
+### appsettings.backend.json (Backend, neben der EXE)
+```json
+{
+  "MidiController": {
+    "DataPath": "%APPDATA%\\MidiController",
+    "EventChannelCapacity": 512
+  },
+  "Urls": "http://localhost:5000"
+}
+```
+
+Profile werden unter `%APPDATA%\MidiController\profiles\` als JSON gespeichert.
+
+---
+
+## Entwicklung
+
+### Voraussetzungen
+- **Windows 10/11** (64-Bit)
+- **Visual Studio 2022/2026** mit Workloads:
+  - `.NET Desktop Development`
+  - `ASP.NET and Web Development`
+- **.NET 10 SDK**
+
+### Bauen & Starten
 
 ```bash
-dotnet build Midi2InputDevice.slnx
+# Debug-Start (Frontend startet Backend in-process)
+dotnet run --project MidiController.Frontend
+
+# Tests
+dotnet test
+
+# Release-Build
+dotnet build -c Release
+
+# Single-File Publish
+dotnet publish MidiController.Frontend\MidiController.Frontend.csproj \
+  /p:PublishProfile=SingleFile -c Release
 ```
 
-### 3. Backend starten
+Ausgabe: `MidiController.Frontend\bin\Release\publish\MidiController.Frontend.exe`
 
-```bash
-cd MidiController.Host
-dotnet run
-```
+---
 
-Der Host lauscht standardmäßig auf `http://localhost:5000`.  
-Die REST-API ist unter `http://localhost:5000/api/` erreichbar.
+## Release erstellen
 
-### 4. Frontend starten
+Siehe [`docs/RELEASE.md`](MidiController/docs/RELEASE.md) für die vollständige Anleitung zum Erstellen eines GitHub-Releases.
 
-```bash
-cd MidiController.Frontend
-dotnet run
-```
-
-Oder in Visual Studio das Projekt `MidiController.Frontend` als Startprojekt setzen und starten.
-
-### 5. Als Windows-Dienst installieren (optional)
-
-```powershell
-sc.exe create MidiController binPath="C:\Pfad\zu\MidiController.Host.exe"
-sc.exe start MidiController
-```
-
-> **Hinweis:** Im Dienst-Modus ist `SendInput` nur in der interaktiven Benutzersession wirksam (Session 1). Für produktiven Einsatz als Dienst wird eine Session-Weiterleitung benötigt (siehe ADR-002).
-
-### 6. Profil anlegen
-
-Profile werden als JSON-Dateien unter `%ProgramData%\MidiController\profiles\` abgelegt.  
-Ein Beispiel-Profil befindet sich in `MidiController\docs\SPEC_BACKEND.md` (Abschnitt 2.6).
-
-Nach dem Start ist das Aktivierungs-Gate standardmäßig **gesperrt** (`A=2`).  
-Über das Frontend (Status-View → „Aktivieren") oder die API (`PUT /api/status/variables/A` mit `{ "value": 0 }`) wird die Verarbeitung freigegeben.
+Kurzübersicht:
+1. Version in `CHANGELOG` vermerken
+2. Git-Tag setzen: `git tag v0.3.0`
+3. GitHub Actions Workflow `release.yml` baut und veröffentlicht automatisch
 
 ---
 
 ## Roadmap
 
-### v0.2 – Tray-Integration
-- **System-Tray-Icon** für den Host-Prozess (Windows NotifyIcon)
-- Icon blinkt / wechselt Farbe, wenn MIDI-Signale aktiv verarbeitet werden
-- Kontextmenü: Aktivieren / Pause / Sperren / Beenden
-
-### v0.3 – Trigger-Editor
-- Vollständiger Trigger-Editor im WPF-Frontend (Prüfblöcke, Aktionen, ELSE-Zweige, Templates)
-- Drag & Drop für Prüfblock-Reihenfolge
-- Rechtsklick im MIDI-Log → „Trigger für dieses Event anlegen" (vorausgefüllter Editor)
-
-### v0.4 – Virtuelle MIDI-Ports
-- Integration von **loopMIDI** (COM-Automation) für virtuelle Port-Erstellung
-- Alternativ: Windows MIDI Services API (ab Windows 11 24H2)
-- UI-Verwaltung in der Devices-View
-
-### v0.5 – Linux-Backend + Avalonia-Frontend
-- Backend-Portierung auf **Linux** mit **.NET 10** und **RtMidi.NET** statt NAudio
-- Eingabe-Injektion unter Linux via `libevdev` / `uinput`
-- Ersetzen der WPF-Oberfläche durch **Avalonia UI** (cross-platform)
-- Gemeinsame ViewModel-Schicht (plattformunabhängig)
-
-### v1.0 – Stabiler Windows-Dienst-Betrieb
-- Vollständige Session-Weiterleitung für `SendInput` im Dienst-Modus (Session 0 → Session 1)
-- Automatischer Reconnect bei MIDI-Gerätewechsel
-- Installer (MSI / WiX)
-- Vollständige Dokumentation und Beispiel-Profile
-
-
-Das Projekt besteht aus einem **Backend-Dienst** (ASP.NET Core, .NET 10) und einer **WPF-Konfigurations-App** (.NET 10, Windows).
-
----
-
-## Komponenten
-
-| Komponente | Beschreibung |
+| Version | Ziel |
 |---|---|
-| **MidiController.Domain** | Domänenmodelle (`MidiEvent`, `Trigger`, `Profile`, Variablen A–Z, Enums) |
-| **MidiController.Engine** | Mapping-Engine, Trigger-Auswertung, Gate-Logik, Delta-Tracking, Variable Store |
-| **MidiController.Infrastructure** | MIDI-Eingangsservice (NAudio), Windows-Eingabe-Injektion (`SendInput`), Konfigurations-Store (JSON) |
-| **MidiController.Host** | ASP.NET Core Host, REST-API, SignalR-Hubs, Startup-Verdrahtung |
-| **MidiControllerFrontend** | WPF-App (.NET 10-windows): Status, MIDI-Log, Mappings, Templates, Devices |
+| ✅ v0.1 | Grundgerüst: Backend, Engine, REST-API, WPF-Frontend |
+| ✅ v0.2 | Tray-Icon, Tastatur-Test-View, strukturierter Tastenkombo-Editor |
+| ✅ v0.3 | Vollständiger Trigger-Editor (Pre/Post, Bedingungen, ELSE), MIDI-Ausgabe, Single-EXE |
+| 🔜 v0.4 | Virtuelle MIDI-Ports (loopMIDI / Windows MIDI Services) |
+| 🔜 v0.5 | Linux-Backend + Avalonia-Frontend (cross-platform) |
+| 🔜 v1.0 | Windows-Dienst-Betrieb, Installer (MSI), vollständige Dokumentation |
 
 ---
 
-## Features
-
-### MIDI-Verarbeitung
-- Empfang von MIDI-Events von allen angeschlossenen physikalischen Geräten (NAudio `MidiIn`)
-- Unterstützte Event-Typen: `NoteOn`, `NoteOff`, `ControlChange`, `ProgramChange` u. a.
-- Hochpriorität-Verarbeitung via `System.Threading.Channels` (kein Locking im Hot-Path)
-
-### Mapping-Engine
-- Flexible Trigger-Konfiguration: Gerät + Event-Typ + Kanal + Data1-Filter
-- **Zustandsvariablen A–Z** (Wertebereich −127…+127) für komplexe Steuerlogik
-- **Delta-Tracking**: `V` (DeltaData1) und `W` (DeltaData2) halten die Differenz zum vorherigen Event
-- **Berechnete Lesewerte**: `DD1PosAbs`, `DD1NegAbs`, `DD2PosAbs`, `DD2NegAbs`, `DD1Pos`, `DD1Neg`, `DD2Pos`, `DD2Neg`
-- **Prüfblöcke** (UND-verknüpft zwischen Blöcken, ODER innerhalb eines Blocks)
-- **Mehrere sequenzielle Aktionen** pro Trigger, je mit eigenem Tastendruck, X/Y/Z-Quellen und State-Zuweisungen
-- **Globale Pre-/Post-Zuweisungen** für Sperr- und Signalisierungsmuster
-- **ELSE-Zweige** bei fehlgeschlagenen Prüfblöcken
-- **Aktivierungs-Gate** (Variable `A`): `0` = aktiv, `1` = pausiert, `2` = gesperrt (Default)
-
-### Eingabe-Injektion
-- Win32 `SendInput` (P/Invoke): Einzel-Tasten, Kombinationen, Key-Down+Hold+Up
-- `X` = Wiederholungen, `Y` = Hold-Dauer (ms), `Z` = Pause nach Tastendruck (ms)
-
-### Konfiguration & Templates
-- Profile gespeichert als JSON unter `%ProgramData%\MidiController\profiles\`
-- Wiederverwendbare **ConditionBlock**- und **ActionBlock-Templates**
-- Live-Aktivierung eines Profils ohne Neustart
-
-### API & Echtzeit-Streaming
-- REST-API: Profile, Trigger, Devices, Status, Variablen
-- **SignalR-Hubs**: `/hubs/status` (Variablen-Livestream) und `/hubs/midilog` (MIDI-Rohdaten)
-
-### Frontend (WPF)
-- **Status-View**: Gate-Steuerung (Aktivieren / Pause / Sperren), Echtzeit-Variablen-Tabelle (A–Z)
-- **MIDI-Log-View**: Live-Stream aller MIDI-Events, Gerätefilter, bis zu 1.000 Zeilen
-- **Devices-View**: Physikalische MIDI-Geräte auflisten
-- **Mappings-View**: Trigger-Übersicht (Editor in Entwicklung)
-- **Templates-View**: Templates auflisten und löschen
-- Profil-Dropdown + Aktivieren-Button in der Top-Bar
-- Farbiger Verbindungsindikator (Grün/Gelb/Orange/Rot)
-
----
-
-## Einschränkungen (aktuell)
+## Einschränkungen
 
 | Einschränkung | Details |
 |---|---|
-| **Windows only** | `SendInput` und NAudio `MidiIn` sind Windows-spezifisch; kein Linux/macOS-Support |
-| **Keine virtuellen MIDI-Ports** | `VirtualMidiPortService` ist noch nicht implementiert (loopMIDI-Integration ausstehend) |
-| **Kein Trigger-Editor im Frontend** | Die Mappings-View zeigt nur eine Statusmeldung; der vollständige Trigger-Editor ist noch nicht gebaut |
-| **Kein Tray-Icon** | Die App läuft als normales Fenster; kein Systray-Icon vorhanden |
-| **SendInput und Dienst-Session** | Als Windows-Dienst (Session 0) funktioniert `SendInput` nicht ohne zusätzliche Session-Weiterleitung |
-| **Keine Authentifizierung** | Die REST-API ist ohne Auth erreichbar; nur für lokalen Betrieb gedacht |
-| **Kein Hot-Reload der Konfiguration** | Profiländerungen im Dateisystem erfordern eine neue Aktivierung über die API |
-
----
-
-## Voraussetzungen
-
-### Laufzeit
-- **Windows 10 / 11** (64-Bit)
-- **.NET 10 Runtime** ([Download](https://dotnet.microsoft.com/download/dotnet/10.0))
-- Mindestens ein physikalisches MIDI-Gerät (USB oder DIN, über Treiber eingebunden)
-
-### Entwicklung
-- **Visual Studio 2022 / 2026** (Community oder höher) mit Workloads:
-  - `.NET Desktop Development` (für WPF-Frontend)
-  - `ASP.NET and Web Development` (für Host)
-- **.NET 10 SDK**
-- **Git**
-
----
-
-## Installation & Start
-
-### 1. Repository klonen
-
-```bash
-git clone https://github.com/<org>/MidiController.git
-cd MidiController
-```
-
-### 2. Solution bauen
-
-```bash
-dotnet build MidiController.sln
-```
-
-### 3. Backend starten
-
-```bash
-cd MidiController.Host
-dotnet run
-```
-
-Der Host lauscht standardmäßig auf `http://localhost:5000`.  
-Die REST-API ist unter `http://localhost:5000/api/` erreichbar.
-
-### 4. Frontend starten
-
-```bash
-cd MidiControllerFrontend
-dotnet run
-```
-
-Oder in Visual Studio das Projekt `MidiControllerFrontend` als Startprojekt setzen und starten.
-
-### 5. Als Windows-Dienst installieren (optional)
-
-```powershell
-sc.exe create MidiController binPath="C:\Pfad\zu\MidiController.Host.exe"
-sc.exe start MidiController
-```
-
-> **Hinweis:** Im Dienst-Modus ist `SendInput` nur in der interaktiven Benutzersession wirksam (Session 1). Für produktiven Einsatz als Dienst wird eine Session-Weiterleitung benötigt (siehe ADR-002).
-
-### 6. Profil anlegen
-
-Profile werden als JSON-Dateien unter `%ProgramData%\MidiController\profiles\` abgelegt.  
-Ein Beispiel-Profil befindet sich in `docs\SPEC_BACKEND.md` (Abschnitt 2.6).
-
-Nach dem Start ist das Aktivierungs-Gate standardmäßig **gesperrt** (`A=2`).  
-Über das Frontend (Status-View → „Aktivieren") oder die API (`PUT /api/status/variables/A` mit `{ "value": 0 }`) wird die Verarbeitung freigegeben.
-
----
-
-## Roadmap
-
-### v0.2 – Tray-Integration
-- **System-Tray-Icon** für den Host-Prozess (Windows NotifyIcon)
-- Icon blinkt / wechselt Farbe, wenn MIDI-Signale aktiv verarbeitet werden
-- Kontextmenü: Aktivieren / Pause / Sperren / Beenden
-
-### v0.3 – Trigger-Editor
-- Vollständiger Trigger-Editor im WPF-Frontend (Prüfblöcke, Aktionen, ELSE-Zweige, Templates)
-- Drag & Drop für Prüfblock-Reihenfolge
-- Rechtsklick im MIDI-Log → „Trigger für dieses Event anlegen" (vorausgefüllter Editor)
-
-### v0.4 – Virtuelle MIDI-Ports
-- Integration von **loopMIDI** (COM-Automation) für virtuelle Port-Erstellung
-- Alternativ: Windows MIDI Services API (ab Windows 11 24H2)
-- UI-Verwaltung in der Devices-View
-
-### v0.5 – Linux-Backend + Avalonia-Frontend
-- Backend-Portierung auf **Linux** mit **.NET 10** und **RtMidi.NET** statt NAudio
-- Eingabe-Injektion unter Linux via `libevdev` / `uinput`
-- Ersetzen der WPF-Oberfläche durch **Avalonia UI** (cross-platform)
-- Gemeinsame ViewModel-Schicht (plattformunabhängig)
-
-### v1.0 – Stabiler Windows-Dienst-Betrieb
-- Vollständige Session-Weiterleitung für `SendInput` im Dienst-Modus (Session 0 → Session 1)
-- Automatischer Reconnect bei MIDI-Gerätewechsel
-- Installer (MSI / WiX)
-- Vollständige Dokumentation und Beispiel-Profile
+| **Windows only** | `SendInput` und NAudio `MidiIn` sind Windows-spezifisch |
+| **Keine virtuellen MIDI-Ports** | loopMIDI-Integration noch ausstehend (v0.4) |
+| **Port 5000 fest** | Backend läuft immer auf `http://localhost:5000`; konfigurierbar in `appsettings.backend.json` |
+| **Keine Authentifizierung** | REST-API ohne Auth; nur für lokalen Betrieb |
+| **SendInput im Dienst-Modus** | Als Windows-Dienst (Session 0) ohne Session-Weiterleitung nicht nutzbar |

@@ -1,0 +1,54 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: .NET 10 SDK einrichten
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Abhängigkeiten wiederherstellen
+        run: dotnet restore Midi2InputDevice.slnx
+
+      - name: Build
+        run: dotnet build Midi2InputDevice.slnx -c Release --no-restore
+
+      - name: Tests ausführen
+        run: dotnet test Midi2InputDevice.slnx -c Release --no-build --verbosity normal
+
+      - name: Single-File Publish
+        run: |
+          dotnet publish MidiController.Frontend/MidiController.Frontend.csproj `
+            /p:PublishProfile=SingleFile -c Release
+
+      - name: Release-ZIP erstellen
+        shell: pwsh
+        run: |
+          $tag     = "${{ github.ref_name }}"
+          $pubDir  = "MidiController.Frontend/bin/Release/publish"
+          $zipName = "MidiController-$tag-win-x64.zip"
+          Compress-Archive -Force `
+            -Path "$pubDir/MidiController.Frontend.exe", `
+                  "$pubDir/appsettings.json", `
+                  "$pubDir/appsettings.backend.json" `
+            -DestinationPath $zipName
+          echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+
+      - name: GitHub Release erstellen und ZIP hochladen
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
