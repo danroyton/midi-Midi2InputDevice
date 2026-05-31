@@ -1,22 +1,22 @@
-# Frontend-Spezifikation – MidiController
+# Frontend Specification – MidiController
 
-## 1. Überblick
+## 1. Overview
 
-Das Frontend ist eine **WPF-Applikation (.NET 10)**, die gleichzeitig das Backend in-process hostet (Single-EXE-Modell). Es kommuniziert mit dem Backend über **REST** (localhost:5000) und empfängt Echtzeit-Events über **SignalR WebSockets**. Die Applikation speichert keine eigene Konfiguration – alle Daten werden über die Backend-API geladen und gespeichert.
+The frontend is a **WPF application (.NET 10)** that also hosts the backend in-process (single-EXE model). It communicates with the backend via **REST** (localhost:5000) and receives real-time events via **SignalR WebSockets**. The application stores no configuration of its own – all data is loaded and saved through the backend API.
 
-> **Single-EXE:** Der Backend-Kestrel-Host wird beim Start via `BackendHostService` automatisch in-process gestartet. Es ist kein separater Backend-Prozess nötig.
+> **Single-EXE:** The backend Kestrel host is started automatically in-process on launch via `BackendHostService`. No separate backend process is required.
 
 ---
 
 ## 2. Screens / Views
 
-### 2.1 Hauptfenster
+### 2.1 Main Window
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  MidiController  [Profil: gaming ▼]  [Aktivieren] [●]   │
+│  MidiController  [Profile: gaming ▼]  [Activate] [●]   │
 ├──────────┬───────────────────────────────────────────────┤
-│ Nav      │  Content-Area                                 │
+│ Nav      │  Content Area                                 │
 │          │                                               │
 │ Devices  │                                               │
 │ Mappings │                                               │
@@ -26,66 +26,66 @@ Das Frontend ist eine **WPF-Applikation (.NET 10)**, die gleichzeitig das Backen
 └──────────┴───────────────────────────────────────────────┘
 ```
 
-- **Profil-Dropdown** oben: Auswahl und Aktivierung eines Profils.
-- **Status-Indikator** (●): Grün = Backend verbunden + Profil aktiv (A=0), Gelb = verbunden/pausiert (A=1), Orange = verbunden/gesperrt (A=2), Rot = nicht verbunden.
-- **Navigation** links: Wechsel zwischen den fünf Hauptbereichen.
+- **Profile dropdown** at the top: select and activate a profile.
+- **Status indicator** (●): Green = backend connected + profile active (A=0), Yellow = connected/paused (A=1), Orange = connected/locked (A=2), Red = not connected.
+- **Navigation** on the left: switch between the five main sections.
 
 ---
 
 ### 2.2 View: Devices
 
-**Zweck:** Physikalische MIDI-Geräte auflisten und virtuelle Ports verwalten.
+**Purpose:** List physical MIDI devices and manage virtual ports.
 
 ```
-┌─ Physikalische Geräte ──────────────────────────────────┐
-│ [Aktualisieren]                                         │
+┌─ Physical Devices ──────────────────────────────────────┐
+│ [Refresh]                                               │
 │                                                         │
-│  ► KORG nanoKONTROL2   [Öffnen]                        │
-│  ► Arturia KeyStep      [Öffnen]                        │
+│  ► KORG nanoKONTROL2   [Open]                          │
+│  ► Arturia KeyStep      [Open]                          │
 └─────────────────────────────────────────────────────────┘
-┌─ Virtuelle Ports ───────────────────────────────────────┐
-│  [+ Neu]                                                │
+┌─ Virtual Ports ─────────────────────────────────────────┐
+│  [+ New]                                                │
 │                                                         │
-│  MidiCtrl-A  → KORG nanoKONTROL2  [Entfernen]          │
-│  MidiCtrl-B  → KORG nanoKONTROL2  [Entfernen]          │
+│  MidiCtrl-A  → KORG nanoKONTROL2  [Remove]             │
+│  MidiCtrl-B  → KORG nanoKONTROL2  [Remove]             │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Aktionen:**
-- `GET /api/v1/devices` → Geräteliste aktualisieren.
-- `POST /api/v1/devices/virtual` → Neuen virtuellen Port anlegen (Dialog: Name + Quellgerät).
-- `DELETE /api/v1/devices/virtual/{id}` → Port entfernen.
+**Actions:**
+- `GET /api/v1/devices` → Refresh device list.
+- `POST /api/v1/devices/virtual` → Create a new virtual port (dialog: name + source device).
+- `DELETE /api/v1/devices/virtual/{id}` → Remove port.
 
 ---
 
 ### 2.4 View: Templates
 
-**Zweck:** Wiederverwendbare Prüfblock- und Aktionsblock-Templates verwalten.
+**Purpose:** Manage reusable condition block and action block templates.
 
 ```
-┌─ Templates  [+ Neu] ────────────────────────────────────┐
-│  Filter: ○ Alle  ○ ConditionBlock  ○ ActionBlock        │
+┌─ Templates  [+ New] ────────────────────────────────────┐
+│  Filter: ○ All  ○ ConditionBlock  ○ ActionBlock         │
 │                                                         │
-│  Name                    │ Typ            │ Aktionen    │
+│  Name                    │ Type           │ Actions     │
 │──────────────────────────┼────────────────┼─────────────│
 │  only-when-active        │ ConditionBlock │ ✎ 🗑 📋     │
 │  block-during-action     │ ActionBlock    │ ✎ 🗑 📋     │
 └─────────────────────────────────────────────────────────┘
 ```
 
-- **Bearbeiten (✎):** Öffnet den jeweiligen Block-Editor inline.
-- **Löschen (🗑):** Prüft zuerst, ob das Template von Triggern referenziert wird; zeigt Warnung wenn ja.
-- **Duplizieren (📋):** Kopie unter neuem Namen anlegen.
-- Alle Operationen via `GET/POST/PUT/DELETE /api/v1/templates`.
+- **Edit (✎):** Opens the respective block editor inline.
+- **Delete (🗑):** First checks whether the template is referenced by any triggers; shows a warning if so.
+- **Duplicate (📋):** Create a copy under a new name.
+- All operations via `GET/POST/PUT/DELETE /api/v1/templates`.
 
 ---
 
 ### 2.5 View: Log (MIDI Raw Data)
 
-**Zweck:** Live-Ausgabe der MIDI-Rohdaten eines Geräts.
+**Purpose:** Live output of raw MIDI data from a device.
 
 ```
-┌─ Gerät: [KORG nanoKONTROL2 ▼]  [Start] [Stop] [Leeren] ┐
+┌─ Device: [KORG nanoKONTROL2 ▼]  [Start] [Stop] [Clear] ┐
 │ Timestamp    │ Type          │ Ch │ Data1 │ Data2        │
 │──────────────┼───────────────┼────┼───────┼──────────────│
 │ 00:00:01.023 │ ControlChange │  1 │    16 │          64  │
@@ -94,259 +94,237 @@ Das Frontend ist eine **WPF-Applikation (.NET 10)**, die gleichzeitig das Backen
 └──────────────────────────────────────────────────────────┘
 ```
 
-**Implementierung:**
-- SignalR-Verbindung zu `/hubs/midilog`.
-- Client abonniert events für das ausgewählte Gerät.
-- Maximalpuffer: 1000 Zeilen (älteste werden verworfen).
-- Rechtsklick auf eine Zeile → **„Trigger für dieses Event anlegen"** (öffnet Trigger-Editor vorausgefüllt).
+**Implementation:**
+- SignalR connection to `/hubs/midilog`.
+- Client subscribes to events for the selected device.
+- Maximum buffer: 1,000 rows (oldest are discarded).
+- Right-click on a row → **"Create trigger for this event"** (opens the trigger editor pre-filled).
 
 ---
 
-### 2.6 View: Mappings (Trigger-Konfiguration)
+### 2.6 View: Mappings (Trigger Configuration)
 
-**Zweck:** Mapping-Regeln (Trigger) eines Profils verwalten.
+**Purpose:** Manage mapping rules (triggers) for a profile.
 
-#### 2.4.1 Trigger-Liste
+#### 2.4.1 Trigger List
 
 ```
-┌─ Trigger  [+ Neu] ──────────────────────────────────────┐
-│  # │ Gerät              │ Event       │ Aktionen    │ Edit │
+┌─ Triggers  [+ New] ─────────────────────────────────────┐
+│  # │ Device             │ Event       │ Actions     │ Edit │
 │────┼────────────────────┼─────────────┼─────────────┼──────│
 │  1 │ nanoKONTROL2 Ch1   │ CC #16      │ Vol↑ / Vol↓ │ ✎ 🗑 │
 │  2 │ KeyStep Ch1        │ NoteOn #60  │ Space ×3    │ ✎ 🗑 │
 └─────────────────────────────────────────────────────────┘
 ```
 
-#### 2.4.2 Trigger-Editor (Dialog / Side-Panel)
+#### 2.4.2 Trigger Editor (Dialog / Side Panel)
 
 ```
-┌─ Trigger bearbeiten ────────────────────────────────────┐
-│ [▶ Mitschneiden]  [■ Stop]  (letztes Event vorausfüllen) │
+┌─ Edit Trigger ──────────────────────────────────────────┐
+│ [▶ Record]  [■ Stop]  (pre-fill from last event)        │
 │                                                         │
-│ Gerät:      [KORG nanoKONTROL2 ▼]                       │
-│ Event-Typ:  [ControlChange ▼]   Kanal: [1]  Data1: [16] │
-│ Match:      [Variable ▼]  Wert: [0]                     │
-│   (Variable = bei jedem Data2 auslösen; sonst            │
+│ Device:     [KORG nanoKONTROL2 ▼]                       │
+│ Event Type: [ControlChange ▼]  Channel: [1]  Data1: [16]│
+│ Match:      [Variable ▼]  Value: [0]                    │
+│   (Variable = fire on every Data2; otherwise            │
 │    Data2 | DeltaData2 | DD2Positive | DD2Negative)      │
 │                                                         │
-│ ── Schritt 0: Globale Pre-Zuweisungen ───────────────── │
-│ [+ Zuweisung]                                           │
-│   Variable [B▼] ← [Fixed▼] Wert [1]              [✕]   │
+│ ── Step 0: Global Pre-Assignments ───────────────────── │
+│ [+ Assignment]                                          │
+│   Variable [B▼] ← [Fixed▼] Value [1]             [✕]   │
 │                                                         │
-│ ── Prüfblöcke (UND-verknüpft) ───────────────────────── │
+│ ── Condition Blocks (AND-linked) ────────────────────── │
 │ [+ Block]                                               │
 │ Block 1  Template:[only-when-active▼]        [✕ Block] │
 │ Block 2  Template:[-- inline --▼]            [✕ Block] │
-│   [+ Bedingung]                                         │
-│   Links [MidiData2▼] Op [>=▼] Rechts[Fixed▼][10] [✕]  │
-│   ELSE (wenn Block 2 falsch): [▼ konfigurieren…]       │
+│   [+ Condition]                                         │
+│   Left [MidiData2▼] Op [>=▼] Right[Fixed▼][10]  [✕]   │
+│   ELSE (if Block 2 fails): [▼ configure…]              │
 │                                                         │
-│ ── Aktionen (sequenziell) ───────────────────────────── │
-│ [+ Aktion]                                              │
+│ ── Actions (sequential) ─────────────────────────────── │
+│ [+ Action]                                              │
 │                                                         │
-│ Aktion 1  Template:[-- inline --▼]  [↑][↓][✕]          │
-│   Tasten: [VolumeUp]  [+ Taste]                         │
-│   X (Repeat):      ● DD2Positive  ○ DD2Negative  ○ Fest[_] │
-│   Y (KeyDuration): ● Fest [0]                           │
-│   Z (Pause):       ● Fest [0]                           │
-│   State-Zuweisungen: [+ Hinzufügen]                     │
+│ Action 1  Template:[-- inline --▼]  [↑][↓][✕]          │
+│   Keys: [VolumeUp]  [+ Key]                             │
+│   X (Repeat):      ● DD2Positive  ○ DD2Negative  ○ Fixed[_] │
+│   Y (KeyDuration): ● Fixed [0]                          │
+│   Z (Pause):       ● Fixed [0]                          │
+│   State Assignments: [+ Add]                            │
 │                                                         │
-│ Aktion 2  Template:[-- inline --▼]  [↑][↓][✕]          │
-│   Tasten: [VolumeDown]  [+ Taste]                       │
-│   X (Repeat):      ● DD2Negative  ○ DD2Positive  ○ Fest[_] │
-│   Y (KeyDuration): ● Fest [0]                           │
-│   Z (Pause):       ● Fest [0]                           │
-│   State-Zuweisungen: [+ Hinzufügen]                     │
+│ Action 2  Template:[-- inline --▼]  [↑][↓][✕]          │
+│   Keys: [VolumeDown]  [+ Key]                           │
+│   X (Repeat):      ● DD2Negative  ○ DD2Positive  ○ Fixed[_] │
+│   Y (KeyDuration): ● Fixed [0]                          │
+│   Z (Pause):       ● Fixed [0]                          │
+│   State Assignments: [+ Add]                            │
 │                                                         │
-│ ── Globale Post-Zuweisungen (nach allen Aktionen) ───── │
-│ [+ Zuweisung]                                           │
-│   Variable [B▼] ← [Fixed▼] Wert [0]              [✕]   │
+│ ── Global Post-Assignments (after all actions) ──────── │
+│ [+ Assignment]                                          │
+│   Variable [B▼] ← [Fixed▼] Value [0]             [✕]   │
 │                                                         │
-│         [Abbrechen]  [Als Template…]  [Speichern]       │
+│         [Cancel]  [Save as Template…]  [Save]           │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Felder:**
+**Fields:**
 
-| Bereich | Feld | Typ | Beschreibung |
+| Section | Field | Type | Description |
 |---|---|---|---|
-| Header | Mitschneiden | Button | Startet MIDI-Mitschnitt; bei Klick auf eine Zeile werden Gerät/Typ/Kanal/Data1 vorausgefüllt |
-| Header | Gerät / Event-Typ / Kanal / Data1 | Dropdowns / Spinner | Filter für MIDI-Event-Matching |
-| Header | Match (Feld 4) | Dropdown | `Variable` \| `Data2` \| `DeltaData2` \| `DD2Positive` \| `DD2Negative` |
-| Header | Wert | Spinner | Zielwert für Match (ausgeblendet bei `Variable`) |
-| Schritt 0 | Globale Pre-Zuweisungen | Liste | Variablen setzen **vor** Prüfblöcken |
-| Prüfblöcke | Block-Liste | Dynamisch | 1..n; Reihenfolge per Drag & Drop |
-| Prüfblock | Bedingungen | Liste | Links / Op / Rechts; Quellen: alle Variablen A–Z, MidiData1/2, DeltaData2, DD2Positive, DD2Negative, Fixed |
-| Prüfblock | ELSE-Config | Ausklappbereich | Eigene Prüfblöcke + Aktionen bei Fehlschlag |
-| Aktionen | Aktions-Liste | Dynamisch | 1..n; Reihenfolge per ↑/↓ |
-| Aktion | Template | Dropdown | ActionBlock-Template oder inline |
-| Aktion | Tasten | Tag-Editor | Modifier + Tasten; leer = nur State-Änderung |
-| Aktion | X (`Repeat`) | Radio + Spinner | MidiData1/2, DeltaData2, DD2Positive, DD2Negative, Var A–Z, Fixed |
-| Aktion | Y (`KeyDuration`) | Radio + Spinner | Wie X |
-| Aktion | Z (`Pause`) | Radio + Spinner | Wie X |
-| Aktion | State-Zuweisungen | Liste | Variable ← Quelle (nach dem Tastendruck dieser Aktion) |
-| Footer | Globale Post-Zuweisungen | Liste | Einmalig nach allen Aktionen ausgeführt |
+| Header | Record | Button | Starts MIDI recording; clicking a row pre-fills Device/Type/Channel/Data1 |
+| Header | Device / Event Type / Channel / Data1 | Dropdowns / Spinners | Filter for MIDI event matching |
+| Header | Match (field 4) | Dropdown | `Variable` \| `Data2` \| `DeltaData2` \| `DD2Positive` \| `DD2Negative` |
+| Header | Value | Spinner | Target value for match (hidden when `Variable`) |
+| Step 0 | Global Pre-Assignments | List | Set variables **before** condition blocks |
+| Condition Blocks | Block list | Dynamic | 1..n; order via drag & drop |
+| Condition Block | Conditions | List | Left / Op / Right; sources: all variables A–Z, MidiData1/2, DeltaData2, DD2Positive, DD2Negative, Fixed |
+| Condition Block | ELSE Config | Collapsible section | Own condition blocks + actions on failure |
+| Actions | Action list | Dynamic | 1..n; order via ↑/↓ |
+| Action | Template | Dropdown | ActionBlock template or inline |
+| Action | Keys | Tag editor | Modifier + keys; empty = state change only |
+| Action | X (`Repeat`) | Radio + Spinner | MidiData1/2, DeltaData2, DD2Positive, DD2Negative, Var A–Z, Fixed |
+| Action | Y (`KeyDuration`) | Radio + Spinner | Same as X |
+| Action | Z (`Pause`) | Radio + Spinner | Same as X |
+| Action | State Assignments | List | Variable ← source (after key press of this action) |
+| Footer | Global Post-Assignments | List | Executed once after all actions |
 
-> Reservierte Variablen erscheinen mit Alias: `A (ActiveListen)`, `X (Repeat)`, `Y (KeyDuration)`, `Z (Pause)`. Berechnete `DD2*`-Werte sind nur als Quelle (lesend) wählbar, nicht als Ziel.
-
----
-
-### 2.5 View: Templates
-
-**Zweck:** Wiederverwendbare Prüfblock- und Aktionsblock-Templates verwalten.
-
-```
-┌─ Templates  [+ Neu] ────────────────────────────────────┐
-│  Filter: ○ Alle  ○ ConditionBlock  ○ ActionBlock        │
-│                                                         │
-│  Name                    │ Typ            │ Aktionen    │
-│──────────────────────────┼────────────────┼─────────────│
-│  only-when-active        │ ConditionBlock │ ✎ 🗑 📋     │
-│  block-during-action     │ ActionBlock    │ ✎ 🗑 📋     │
-└─────────────────────────────────────────────────────────┘
-```
-
-- **Bearbeiten (✎):** Öffnet den jeweiligen Block-Editor inline.
-- **Löschen (🗑):** Prüft zuerst, ob das Template von Triggern referenziert wird; zeigt Warnung wenn ja.
-- **Duplizieren (📋):** Kopie unter neuem Namen anlegen.
-- Alle Operationen via `GET/POST/PUT/DELETE /api/v1/templates`.
+> Reserved variables are shown with an alias: `A (ActiveListen)`, `X (Repeat)`, `Y (KeyDuration)`, `Z (Pause)`. Computed `DD2*` values are only selectable as a source (read-only), not as a target.
 
 ---
 
 ### 2.7 View: Status
 
-**Zweck:** Laufzeitstatus des Backends anzeigen und Variable A steuern.
+**Purpose:** Display the backend runtime status and control variable A.
 
 ```
-┌─ Laufzeit-Status ───────────────────────────────────────┐
-│ Backend:   ● Verbunden  (localhost:5173)                 │
-│ Profil:    gaming  [seit 00:05:23]                       │
-│ Latenz:    ~0.8 ms (letzte 100 Events)                  │
+┌─ Runtime Status ────────────────────────────────────────┐
+│ Backend:   ● Connected  (localhost:5173)                │
+│ Profile:   gaming  [since 00:05:23]                     │
+│ Latency:   ~0.8 ms (last 100 events)                   │
 │                                                         │
-│ ── Verarbeitungs-Gate (A / ActiveListen) ────────────── │
-│ A = 2  ■ GESPERRT   [Aktivieren (A=0)] [Pause (A=1)]  │
-│         ▤ PAUSIERT   [Aktivieren (A=0)] [Sperren (A=2)] │
-│         ▢ AKTIV      [Pause (A=1)]     [Sperren (A=2)] │
+│ ── Processing Gate (A / ActiveListen) ──────────────── │
+│ A = 2  ■ LOCKED    [Activate (A=0)] [Pause (A=1)]     │
+│         ▤ PAUSED    [Activate (A=0)] [Lock (A=2)]      │
+│         ▢ ACTIVE    [Pause (A=1)]   [Lock (A=2)]       │
 │                                                         │
-│ Status-Variablen (-127…+127):                           │
+│ Status Variables (-127…+127):                           │
 │  A=2 (ActiveListen)                                     │
 │  B=0   C=0   D=0   E=0   F=0   G=0   H=0   I=0         │
 │  J=0   K=0   L=0   M=0   N=0   O=0   P=0   Q=0         │
 │  R=0   S=0   T=0   U=0   V=0   W=0                     │
 │  X=1 (Repeat)  Y=0 (KeyDuration)  Z=0 (Pause)          │
 │                                                         │
-│ Berechnete Lesewerte (letztes Event):                   │
+│ Computed Read Values (last event):                      │
 │  DeltaData2=0  DD2Positive=0  DD2Negative=0             │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Variable-A-Steuerung:**
-- Farbiges Status-Icon: Rot (■ A=2), Gelb (▤ A=1), Grün (▢ A=0).
-- Schaltflächen rufen `PUT /api/v1/status/variables/A` auf.
-- **Wenn A=2:** nur Button "Aktivieren" ist aktiv.
-- Reservierte Variablen werden mit Alias in Klammern angezeigt.
-- Berechnete `DD*`-Werte sind read-only und werden nach jedem MIDI-Event aktualisiert.
-- Alle Variablen werden über SignalR (`/hubs/status`, `VariableChanged`) live aktualisiert.
-- Latenz-Wert kommt von `GET /api/v1/status`.
+**Variable A control:**
+- Colored status icon: Red (■ A=2), Yellow (▤ A=1), Green (▢ A=0).
+- Buttons call `PUT /api/v1/status/variables/A`.
+- **When A=2:** only the "Activate" button is enabled.
+- Reserved variables are displayed with their alias in parentheses.
+- Computed `DD*` values are read-only and updated after each MIDI event.
+- All variables are updated live via SignalR (`/hubs/status`, `VariableChanged`).
+- Latency value comes from `GET /api/v1/status`.
 
 ---
 
-## 2.8 View: Keyboard-Test
+## 2.8 View: Keyboard Test
 
-**Zweck:** Tastatur-Eingaben live testen ohne MIDI-Hardware.
+**Purpose:** Test keyboard input live without MIDI hardware.
 
 ```
-┌─ Keyboard-Test ─────────────────────────────────────────┐
-│  [Strg] [Alt] [Shift] [Win]  +  [Taste eingeben______]  │
+┌─ Keyboard Test ─────────────────────────────────────────┐
+│  [Ctrl] [Alt] [Shift] [Win]  +  [Enter key______]       │
 │                                                         │
-│  [▶ Senden]   Y (Dauer ms): [__0]   Z (Pause ms): [__0] │
+│  [▶ Send]   Y (Duration ms): [__0]   Z (Pause ms): [__0]│
 │                                                         │
-│  Letzte Aktion:                                         │
-│  → Ctrl+Alt+T gesendet (12:04:55.321)                   │
+│  Last Action:                                           │
+│  → Ctrl+Alt+T sent (12:04:55.321)                       │
 └─────────────────────────────────────────────────────────┘
 ```
 
-- Modifier-Checkboxen (Strg, Alt, Shift, Win) + Freitexteingabe für die Haupttaste (VK-Name oder Zeichen)
+- Modifier checkboxes (Ctrl, Alt, Shift, Win) + free-text input for the main key (VK name or character)
 - `Y` = KeyDuration, `Z` = Pause (ms)
-- Direkter Aufruf von `POST /api/v1/input/test`
+- Direct call to `POST /api/v1/input/test`
 
 ---
 
-## 2.9 Tray-Icon (System Notification Area)
+## 2.9 Tray Icon (System Notification Area)
 
-Das **System-Tray-Icon** bleibt aktiv, solange die Anwendung läuft. Das Hauptfenster kann minimiert werden – die App läuft dann unsichtbar im Hintergrund weiter.
+The **system tray icon** remains active as long as the application is running. The main window can be minimized – the app continues running invisibly in the background.
 
-**Farbkodierung:**
+**Color coding:**
 
-| Farbe | Bedeutung |
+| Color | Meaning |
 |---|---|
-| 🟢 Grün | Backend verbunden, Profil aktiv (A=0) |
-| 🟡 Gelb | Backend verbunden, Verarbeitung pausiert (A=1) |
-| 🟠 Orange | Backend verbunden, Gate gesperrt (A=2) |
-| 🔴 Rot | Backend nicht erreichbar |
+| 🟢 Green | Backend connected, profile active (A=0) |
+| 🟡 Yellow | Backend connected, processing paused (A=1) |
+| 🟠 Orange | Backend connected, gate locked (A=2) |
+| 🔴 Red | Backend unreachable |
 
-**Blinken:** Das Icon blinkt kurz (200 ms) bei **tatsächlicher MIDI-Aktivität** (empfangenem Event). Es blinkt nicht bei reinem Polling oder Idle.
+**Blinking:** The icon blinks briefly (200 ms) on **actual MIDI activity** (received event). It does not blink during pure polling or idle.
 
-**Kontextmenü:**
+**Context menu:**
 ```
 ┌─ MidiController ────────────────────────────────────────┐
-│  ✔ Aktivieren (A=0)                                     │
+│  ✔ Activate (A=0)                                       │
 │  ✔ Pause (A=1)                                          │
-│  ✔ Sperren (A=2)                                        │
+│  ✔ Lock (A=2)                                           │
 │  ─────────────────────────────────────────────────────  │
-│  Fenster anzeigen                                       │
-│  Beenden                                                │
+│  Show Window                                            │
+│  Exit                                                   │
 └─────────────────────────────────────────────────────────┘
 ```
 
-- **Aktivieren/Pause/Sperren** rufen `PUT /api/v1/status/variables/A` auf.
-- **Beenden** stoppt den Backend-Host und schließt die Anwendung.
-- Doppelklick auf das Tray-Icon öffnet das Hauptfenster (falls minimiert).
+- **Activate/Pause/Lock** call `PUT /api/v1/status/variables/A`.
+- **Exit** stops the backend host and closes the application.
+- Double-click on the tray icon opens the main window (if minimized).
 
 ---
 
-## 3. API-Kommunikation
+## 3. API Communication
 
-### 3.1 HTTP-Client
+### 3.1 HTTP Client
 
-- `HttpClient` mit `BaseAddress = http://localhost:5173`.
-- Retry-Policy (Polly): 3 Versuche, exponentielles Backoff.
-- Timeout: 5 Sekunden pro Request.
-- Verbindungsstatus wird periodisch (5 s) via `GET /api/v1/status` geprüft.
+- `HttpClient` with `BaseAddress = http://localhost:5173`.
+- Retry policy (Polly): 3 attempts, exponential backoff.
+- Timeout: 5 seconds per request.
+- Connection status is checked periodically (every 5 s) via `GET /api/v1/status`.
 
 ### 3.2 SignalR
 
-- `HubConnectionBuilder` mit automatischem Reconnect.
-- Bei Verbindungsverlust: Status-Indikator auf Rot; Reconnect im Hintergrund.
+- `HubConnectionBuilder` with automatic reconnect.
+- On connection loss: status indicator turns red; reconnect happens in the background.
 
 ---
 
-## 4. Konfiguration des Frontends
+## 4. Frontend Configuration
 
-`appsettings.json` im App-Verzeichnis:
+`appsettings.json` in the app directory:
 
 ```json
 {
   "Backend": {
-	"BaseUrl": "http://localhost:5173",
-	"SignalRReconnectIntervalMs": 3000
+    "BaseUrl": "http://localhost:5173",
+    "SignalRReconnectIntervalMs": 3000
   },
   "UI": {
-	"LogMaxLines": 1000,
-	"Theme": "Dark"
+    "LogMaxLines": 1000,
+    "Theme": "Dark"
   }
 }
 ```
 
 ---
 
-## 5. Technologie-Stack
+## 5. Technology Stack
 
-| Bereich | Technologie |
+| Area | Technology |
 |---|---|
-| UI-Framework | WPF (.NET 10) |
+| UI Framework | WPF (.NET 10) |
 | MVVM | CommunityToolkit.Mvvm |
-| HTTP-Client | `System.Net.Http.HttpClient` + Polly |
-| SignalR-Client | `Microsoft.AspNetCore.SignalR.Client` |
+| HTTP Client | `System.Net.Http.HttpClient` + Polly |
+| SignalR Client | `Microsoft.AspNetCore.SignalR.Client` |
 | JSON | `System.Text.Json` |
 | DI | `Microsoft.Extensions.DependencyInjection` |
